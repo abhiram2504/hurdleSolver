@@ -2,6 +2,7 @@ import { useState } from "react";
 import "./App.css";
 import "./InteractiveGames.css";
 import Roadmap3D from "./Roadmap3D";
+import HomeScreen3D from "./HomeScreen3D";
 import { MatchingGame, TypingGame, HighlightGame } from "./InteractiveGames";
 
 interface Task {
@@ -54,6 +55,7 @@ function App() {
   const [answer, setAnswer] = useState("");
   const [done, setDone] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [showHomeScreen, setShowHomeScreen] = useState(true);
   const [feedback, setFeedback] = useState<{
     show: boolean;
     correct: boolean;
@@ -62,6 +64,11 @@ function App() {
     explanation: string;
     message: string;
   } | null>(null);
+
+  // Handle home screen upload click
+  const handleHomeUploadClick = () => {
+    setShowHomeScreen(false);
+  };
 
   // Handle PDF upload
   const handleUpload = async (e: React.FormEvent) => {
@@ -329,10 +336,41 @@ function App() {
     );
   };
 
+  // Show 3D home screen if no PDF is uploaded yet
+  if (showHomeScreen && !pdfId) {
+    return <HomeScreen3D onUploadClick={handleHomeUploadClick} />;
+  }
+
   return (
     <div className="app-container">
-      <h1>HurdleReader</h1>
-      <p className="subtitle">Gamified Reading & Quizzes from PDFs</p>
+      <div style={{ display: "flex", alignItems: "center", gap: "16px" }}>
+        <button
+          onClick={() => {
+            setShowHomeScreen(true);
+            setPdfId(null);
+            setHurdle(null);
+            setProgress({ xp: 0, streak: 0, current: 0 });
+            setFile(null);
+            setDone(false);
+            setFeedback(null);
+          }}
+          style={{
+            background: "linear-gradient(45deg, #667eea, #764ba2)",
+            border: "none",
+            borderRadius: "12px",
+            padding: "8px 16px",
+            color: "white",
+            fontWeight: "bold",
+            cursor: "pointer",
+          }}
+        >
+          🏠 Home
+        </button>
+        <div>
+          <h1>HurdleReader</h1>
+          <p className="subtitle">Gamified Reading & Quizzes from PDFs</p>
+        </div>
+      </div>
       {pdfId && numChunks > 0 && (
         <Roadmap3D totalHurdles={numChunks} currentHurdle={progress.current} />
       )}

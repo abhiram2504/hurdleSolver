@@ -1,0 +1,398 @@
+/* Interactive Games Styles */
+
+.matching-game,
+.memory-game,
+.typing-game,
+.highlight-game {
+  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  border-radius: 16px;
+  padding: 24px;
+  margin: 16px 0;
+  color: white;
+  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.1);
+}
+
+/* Matching Game */
+.game-board {
+  display: flex;
+  gap: 32px;
+  margin: 20px 0;
+}
+
+.concepts-column,
+.definitions-column {
+  flex: 1;
+}
+
+.concept-card,
+.definition-card {
+  background: rgba(255, 255, 255, 0.1);
+  border: 2px solid rgba(255, 255, 255, 0.2);
+  border-radius: 12px;
+  padding: 16px;
+  margin: 8px 0;
+  cursor: pointer;
+  transition: all 0.3s ease;
+  backdrop-filter: blur(10px);
+}
+
+.concept-card:hover {
+  background: rgba(255, 255, 255, 0.2);
+  transform: translateY(-2px);
+  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.2);
+}
+
+.definition-card {
+  min-height: 80px;
+  position: relative;
+}
+
+.matched-concept {
+  position: absolute;
+  top: 8px;
+  right: 8px;
+  background: #4caf50;
+  padding: 4px 8px;
+  border-radius: 8px;
+  font-size: 12px;
+  font-weight: bold;
+}
+
+/* Memory Game */
+.cards-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(120px, 1fr));
+  gap: 16px;
+  margin: 20px 0;
+}
+
+.memory-card {
+  width: 120px;
+  height: 80px;
+  position: relative;
+  cursor: pointer;
+  perspective: 1000px;
+}
+
+.card-front,
+.card-back {
+  position: absolute;
+  width: 100%;
+  height: 100%;
+  backface-visibility: hidden;
+  border-radius: 12px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-weight: bold;
+  transition: transform 0.6s;
+  box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+}
+
+.card-front {
+  background: linear-gradient(45deg, #ff6b6b, #ff8e8e);
+  font-size: 24px;
+  color: white;
+}
+
+.card-back {
+  background: linear-gradient(45deg, #4ecdc4, #44a08d);
+  color: white;
+  transform: rotateY(180deg);
+  font-size: 12px;
+  text-align: center;
+  padding: 8px;
+}
+
+.memory-card.flipped .card-front {
+  transform: rotateY(180deg);
+}
+
+.memory-card.flipped .card-back {
+  transform: rotateY(0deg);
+}
+
+.attempts {
+  font-size: 18px;
+  font-weight: bold;
+  text-align: center;
+  margin: 16px 0;
+}
+
+/* Typing Game */
+.target-text {
+  background: rgba(255, 255, 255, 0.1);
+  border-radius: 12px;
+  padding: 20px;
+  margin: 16px 0;
+  font-family: "Courier New", monospace;
+  font-size: 18px;
+  line-height: 1.6;
+  backdrop-filter: blur(10px);
+}
+
+.target-text .correct {
+  background: #4caf50;
+  color: white;
+}
+
+.target-text .incorrect {
+  background: #f44336;
+  color: white;
+}
+
+.target-text .current {
+  background: #ffc107;
+  color: black;
+  animation: blink 1s infinite;
+}
+
+@keyframes blink {
+  0%,
+  50% {
+    opacity: 1;
+  }
+  51%,
+  100% {
+    opacity: 0.3;
+  }
+}
+
+.typing-input {
+  width: 100%;
+  height: 120px;
+  background: rgba(255, 255, 255, 0.1);
+  border: 2px solid rgba(255, 255, 255, 0.2);
+  border-radius: 12px;
+  padding: 16px;
+  color: white;
+  font-family: "Courier New", monospace;
+  font-size: 16px;
+  resize: none;
+  backdrop-filter: blur(10px);
+}
+
+.typing-input::placeholder {
+  color: rgba(255, 255, 255, 0.6);
+}
+
+.typing-stats {
+  display: flex;
+  justify-content: space-around;
+  margin: 16px 0;
+  font-size: 18px;
+  font-weight: bold;
+}
+
+/* Highlighting Game */
+.text-to-highlight {
+  background: rgba(255, 255, 255, 0.1);
+  border-radius: 12px;
+  padding: 20px;
+  margin: 16px 0;
+  line-height: 2;
+  backdrop-filter: blur(10px);
+}
+
+.word {
+  cursor: pointer;
+  padding: 2px 4px;
+  border-radius: 4px;
+  transition: background 0.3s ease;
+}
+
+.word:hover {
+  background: rgba(255, 255, 255, 0.2);
+}
+
+.word.highlighted {
+  background: #ffc107;
+  color: black;
+  font-weight: bold;
+}
+
+.target-hints {
+  background: rgba(255, 255, 255, 0.1);
+  border-radius: 12px;
+  padding: 16px;
+  margin: 16px 0;
+  backdrop-filter: blur(10px);
+}
+
+.hint-phrase {
+  display: inline-block;
+  background: rgba(255, 255, 255, 0.2);
+  padding: 4px 12px;
+  margin: 4px;
+  border-radius: 20px;
+  font-size: 14px;
+}
+
+/* Common Game Elements */
+.score {
+  text-align: center;
+  font-size: 24px;
+  font-weight: bold;
+  margin: 16px 0;
+  padding: 16px;
+  background: rgba(255, 255, 255, 0.2);
+  border-radius: 12px;
+  backdrop-filter: blur(10px);
+}
+
+button {
+  background: linear-gradient(45deg, #ff6b6b, #ff8e8e);
+  border: none;
+  border-radius: 12px;
+  padding: 12px 24px;
+  color: white;
+  font-weight: bold;
+  font-size: 16px;
+  cursor: pointer;
+  transition: all 0.3s ease;
+  margin: 16px auto;
+  display: block;
+}
+
+button:hover:not(:disabled) {
+  transform: translateY(-2px);
+  box-shadow: 0 6px 20px rgba(0, 0, 0, 0.2);
+}
+
+button:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+  transform: none;
+}
+
+/* Feedback Modal */
+.feedback-modal {
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  background: rgba(0, 0, 0, 0.8);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 1000;
+  backdrop-filter: blur(10px);
+}
+
+.feedback-content {
+  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  border-radius: 20px;
+  padding: 32px;
+  max-width: 500px;
+  width: 90%;
+  color: white;
+  text-align: center;
+  box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3);
+  animation: slideIn 0.3s ease-out;
+}
+
+@keyframes slideIn {
+  from {
+    opacity: 0;
+    transform: translateY(-50px) scale(0.9);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+  }
+}
+
+.feedback-content h3 {
+  font-size: 24px;
+  margin-bottom: 16px;
+}
+
+.feedback-content .score {
+  font-size: 32px;
+  font-weight: bold;
+  margin: 16px 0;
+  color: #ffd700;
+  text-shadow: 0 2px 4px rgba(0, 0, 0, 0.3);
+}
+
+.feedback-text {
+  font-size: 18px;
+  margin: 16px 0;
+  background: rgba(255, 255, 255, 0.1);
+  border-radius: 12px;
+  padding: 16px;
+  backdrop-filter: blur(10px);
+}
+
+.explanation {
+  font-size: 16px;
+  margin: 16px 0;
+  background: rgba(255, 255, 255, 0.05);
+  border-radius: 12px;
+  padding: 16px;
+  font-style: italic;
+  backdrop-filter: blur(10px);
+}
+
+.message {
+  font-size: 20px;
+  font-weight: bold;
+  margin: 20px 0;
+  color: #4caf50;
+  text-shadow: 0 1px 2px rgba(0, 0, 0, 0.3);
+}
+
+.continue-btn {
+  background: linear-gradient(45deg, #4caf50, #45a049);
+  border: none;
+  border-radius: 12px;
+  padding: 16px 32px;
+  color: white;
+  font-weight: bold;
+  font-size: 18px;
+  cursor: pointer;
+  transition: all 0.3s ease;
+  margin-top: 20px;
+  box-shadow: 0 4px 15px rgba(76, 175, 80, 0.3);
+}
+
+.continue-btn:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 6px 20px rgba(76, 175, 80, 0.4);
+}
+
+/* Responsive Design */
+@media (max-width: 768px) {
+  .game-board {
+    flex-direction: column;
+    gap: 16px;
+  }
+
+  .cards-grid {
+    grid-template-columns: repeat(3, 1fr);
+  }
+
+  .memory-card {
+    width: 100px;
+    height: 70px;
+  }
+
+  .target-text,
+  .typing-input {
+    font-size: 14px;
+  }
+
+  .feedback-content {
+    padding: 24px;
+    margin: 20px;
+  }
+
+  .feedback-content h3 {
+    font-size: 20px;
+  }
+
+  .feedback-content .score {
+    font-size: 24px;
+  }
+}

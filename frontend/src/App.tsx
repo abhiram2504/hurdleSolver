@@ -1,5 +1,6 @@
 import { useState } from "react";
 import "./App.css";
+import Roadmap3D from "./Roadmap3D";
 
 interface Hurdle {
   chunk: string;
@@ -143,6 +144,9 @@ function App() {
     <div className="app-container">
       <h1>HurdleReader</h1>
       <p className="subtitle">Gamified Reading & Quizzes from PDFs</p>
+      {pdfId && numChunks > 0 && (
+        <Roadmap3D totalHurdles={numChunks} currentHurdle={progress.current} />
+      )}
       {!pdfId && (
         <form onSubmit={handleUpload} className="upload-form">
           <input

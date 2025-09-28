@@ -101,44 +101,7 @@ def generate_interactive_game(chunk_data, game_type):
             "definitions": ["definition1", "definition2"]
         }}
         """
-    elif game_type == "memory":
-        prompt = f"""
-        Create memory card pairs from this text. Extract 3-4 key concepts with explanations.
-        
-        Text: {chunk}
-        
-        Return JSON: {{
-            "type": "memory",
-            "memory_pairs": [
-                {{"term": "concept1", "definition": "short explanation1"}},
-                {{"term": "concept2", "definition": "short explanation2"}}
-            ]
-        }}
-        """
-    elif game_type == "typing":
-        prompt = f"""
-        Extract 1-2 important sentences or key phrases from this text for a typing game.
-        
-        Text: {chunk}
-        
-        Return JSON: {{
-            "type": "typing",
-            "typing_text": "Important sentence or key phrase to type"
-        }}
-        """
-    elif game_type == "highlight":
-        prompt = f"""
-        Create an interactive highlighting game from this text.
-        
-        Text: {chunk}
-        
-        Return JSON: {{
-            "type": "highlight",
-            "text": "{chunk}",
-            "target_phrases": ["key phrase1", "key phrase2"],
-            "instruction": "Find and highlight the key concepts"
-        }}
-        """
+   
     elif game_type == "choice":
         prompt = f"""
         Create a short multiple choice question about this text. 

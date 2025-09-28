@@ -14,7 +14,7 @@ from dotenv import load_dotenv
 import PyPDF2
 import textstat
 
-from models import Base, Doc, Chunk, Task, Progress
+from models import Base, Doc, Chunk, Task, Progress, Attempt
 from db import engine, SessionLocal
 try:
     from openai import OpenAI
@@ -109,6 +109,83 @@ def extract_important_concepts(text):
     concepts.extend(frequent_terms[:3])
     
     return list(set(concepts))[:5]  # Return top 5 unique concepts
+
+def categorize_topic(text):
+    """Categorize the topic of the text using keyword analysis"""
+    text_lower = text.lower()
+    
+    # Define topic categories with keywords
+    topic_categories = {
+        'technology': ['algorithm', 'computer', 'software', 'digital', 'data', 'system', 'network', 'programming', 'artificial', 'intelligence', 'machine', 'learning'],
+        'science': ['research', 'study', 'analysis', 'experiment', 'scientific', 'theory', 'hypothesis', 'method', 'process', 'discovery'],
+        'business': ['market', 'company', 'business', 'economic', 'financial', 'profit', 'strategy', 'management', 'customer', 'product'],
+        'education': ['learning', 'student', 'education', 'teaching', 'academic', 'knowledge', 'skill', 'training', 'course', 'study'],
+        'health': ['health', 'medical', 'patient', 'treatment', 'disease', 'medicine', 'therapy', 'clinical', 'diagnosis', 'healthcare'],
+        'social': ['social', 'community', 'society', 'cultural', 'people', 'human', 'relationship', 'interaction', 'communication'],
+        'environment': ['environment', 'climate', 'nature', 'ecological', 'green', 'sustainability', 'conservation', 'pollution', 'energy'],
+        'general': []  # fallback category
+    }
+    
+    # Count keyword matches for each category
+    category_scores = {}
+    for category, keywords in topic_categories.items():
+        if category == 'general':
+            continue
+        score = sum(1 for keyword in keywords if keyword in text_lower)
+        if score > 0:
+            category_scores[category] = score
+    
+    # Return the category with the highest score, or 'general' if no matches
+    if category_scores:
+        return max(category_scores, key=category_scores.get)
+    return 'general'
+
+def analyze_user_performance(user_id, doc_id, db_session):
+    """Analyze user performance by topic categories"""
+    # Get all attempts for this user and document
+    attempts = db_session.query(Attempt, Task, Chunk).join(Task, Attempt.task_id == Task.id).join(Chunk, Task.chunk_id == Chunk.id).filter(Task.doc_id == doc_id, Attempt.user_id == user_id).all()
+    
+    if not attempts:
+        return {"message": "No attempts found"}
+    
+    # Categorize performance by topic
+    topic_performance = {}
+    
+    for attempt, task, chunk in attempts:
+        topic = categorize_topic(chunk.text)
+        
+        if topic not in topic_performance:
+            topic_performance[topic] = {
+                'correct': 0,
+                'total': 0,
+                'avg_time': 0,
+                'total_time': 0
+            }
+        
+        topic_performance[topic]['total'] += 1
+        topic_performance[topic]['total_time'] += attempt.time_ms
+        
+        if attempt.correct:
+            topic_performance[topic]['correct'] += 1
+    
+    # Calculate averages and identify strengths/weaknesses
+    for topic, stats in topic_performance.items():
+        stats['accuracy'] = (stats['correct'] / stats['total']) * 100 if stats['total'] > 0 else 0
+        stats['avg_time'] = stats['total_time'] / stats['total'] if stats['total'] > 0 else 0
+    
+    # Find best and worst topics
+    if topic_performance:
+        best_topic = max(topic_performance.keys(), key=lambda t: topic_performance[t]['accuracy'])
+        worst_topic = min(topic_performance.keys(), key=lambda t: topic_performance[t]['accuracy'])
+        
+        return {
+            'topic_performance': topic_performance,
+            'best_topic': best_topic,
+            'worst_topic': worst_topic,
+            'total_attempts': len(attempts)
+        }
+    
+    return {"message": "No performance data available"}
 
 def generate_question(chunk_text, question_type="choice"):
     """Generate a multiple choice question focusing on important and niche topics"""
@@ -371,8 +448,7 @@ def create_app():
             if not task:
                 return jsonify({'error': 'No task found for this chunk'}), 404
             
-            # Check if it's a boss battle (every 5th hurdle)
-            is_boss = (progress.cleared + 1) % 5 == 0
+            # No boss battles - removed feature
             
             # Get document for preview
             doc = db.query(Doc).filter_by(id=pdf_id).first()
@@ -386,7 +462,7 @@ def create_app():
                 'chunk': current_chunk.text,
                 'task': task.payload_json,
                 'task_type': task.type,
-                'is_boss': is_boss,
+                'is_boss': False,  # No boss battles
                 'idx': progress.cleared,
                 'difficulty': current_chunk.difficulty,
                 'document_text': full_text,
@@ -403,6 +479,7 @@ def create_app():
             data = request.json or {}
             user_answer = data.get('answer', '')
             is_skip = data.get('skip', False)
+            time_taken = data.get('time_ms', 0)  # Time in milliseconds
             
             # Get progress and current task
             progress = db.query(Progress).filter_by(doc_id=pdf_id, user_id=1).first()
@@ -418,6 +495,16 @@ def create_app():
             
             # Handle skip
             if is_skip:
+                # Record skip attempt
+                attempt = Attempt(
+                    task_id=task.id,
+                    user_id=1,
+                    answer_json={'skipped': True},
+                    correct=False,
+                    time_ms=time_taken
+                )
+                db.add(attempt)
+                
                 progress.cleared += 1
                 progress.streak = 0  # Reset streak for skipping
                 db.commit()
@@ -458,12 +545,22 @@ def create_app():
                 score = 0
                 explanation = "Please select a valid option."
             
+            # Record attempt in database
+            attempt = Attempt(
+                task_id=task.id,
+                user_id=1,
+                answer_json={'selected_option': selected_option, 'user_answer': user_answer},
+                correct=is_correct,
+                time_ms=time_taken
+            )
+            db.add(attempt)
+            
             # Calculate points
             points = int(score * 0.1)  # 10 points for perfect score
             
             # Update progress
+            progress.cleared += 1
             if is_correct:
-                progress.cleared += 1
                 progress.xp += points
                 progress.streak += 1
             else:
@@ -471,15 +568,29 @@ def create_app():
             
             db.commit()
             
+            # Get performance analysis
+            performance_analysis = analyze_user_performance(1, pdf_id, db)
+            
             return jsonify({
                 'correct': is_correct,
                 'score': score,
                 'xp': progress.xp,
                 'streak': progress.streak,
                 'current': progress.cleared,
-                'explanation': explanation
+                'explanation': explanation,
+                'time_taken': time_taken,
+                'performance_analysis': performance_analysis
             })
             
+        finally:
+            db.close()
+    
+    @app.route("/api/performance/<int:pdf_id>", methods=["GET"])
+    def get_performance_analysis(pdf_id):
+        db = SessionLocal()
+        try:
+            analysis = analyze_user_performance(1, pdf_id, db)
+            return jsonify(analysis)
         finally:
             db.close()
     

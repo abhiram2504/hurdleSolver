@@ -17,3 +17,6 @@ nltk==3.9.1
 
 # Better text processing for question generation
 textstat==0.7.4
+
+# Topic categorization (using basic text analysis for now)
+# scikit-learn==1.3.2  # Commented out due to compilation issues

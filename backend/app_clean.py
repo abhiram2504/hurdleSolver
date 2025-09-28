@@ -6,7 +6,7 @@ import json
 import hashlib
 import re
 from datetime import datetime
-from flask import Flask, request, jsonify
+from flask import Flask, request, jsonify, send_file
 from flask_cors import CORS
 from sqlalchemy import create_engine
 from sqlalchemy.orm import sessionmaker
@@ -319,9 +319,34 @@ def validate_answer_with_openai(user_answer_idx, correct_idx, question, options,
     # Fallback explanation
     return f"The correct answer is {correct_option}."
 
+def generate_fallback_answer(query, document_text):
+    """Generate a simple answer when LLM is not available"""
+    query_lower = query.lower()
+    doc_lower = document_text.lower()
+    
+    # Simple keyword search
+    sentences = document_text.split('.')
+    relevant_sentences = []
+    
+    for sentence in sentences:
+        if any(word in sentence.lower() for word in query_lower.split() if len(word) > 2):
+            relevant_sentences.append(sentence.strip())
+    
+    if relevant_sentences:
+        # Return first few relevant sentences
+        answer = '. '.join(relevant_sentences[:2])
+        if len(answer) > 200:
+            answer = answer[:200] + "..."
+        return jsonify({"answer": answer})
+    else:
+        return jsonify({"answer": "I couldn't find specific information about your query in the document. Try rephrasing your question or using different keywords."})
+
 def create_app():
     app = Flask(__name__)
     CORS(app, supports_credentials=True)
+        # Configure upload folder
+    app.config['UPLOAD_FOLDER'] = 'uploads'
+    os.makedirs(app.config['UPLOAD_FOLDER'], exist_ok=True)
     
     # Create tables if they don't exist
     Base.metadata.create_all(bind=engine)
@@ -591,6 +616,92 @@ def create_app():
         try:
             analysis = analyze_user_performance(1, pdf_id, db)
             return jsonify(analysis)
+        finally:
+            db.close()
+    
+    @app.route('/api/download/<int:pdf_id>')
+    def download_pdf(pdf_id):
+        """Download the original PDF file"""
+        db = SessionLocal()
+        try:
+            doc = db.query(Doc).filter(Doc.id == pdf_id).first()
+            if not doc:
+                return jsonify({"error": "Document not found"}), 404
+            
+            # Check if file exists
+            file_path = os.path.join(app.config['UPLOAD_FOLDER'], doc.storage_path)
+            if not os.path.exists(file_path):
+                return jsonify({"error": "File not found on server"}), 404
+            
+            # Extract filename from storage path for download
+            filename = os.path.basename(doc.storage_path)
+            return send_file(file_path, as_attachment=True, download_name=filename)
+        except Exception as e:
+            print(f"Error downloading PDF: {e}")
+            return jsonify({"error": str(e)}), 500
+        finally:
+            db.close()
+
+    @app.route('/api/query/<int:pdf_id>', methods=['POST'])
+    def query_document(pdf_id):
+        """Query the document with LLM assistance"""
+        db = SessionLocal()
+        try:
+            data = request.get_json()
+            query = data.get('query', '').strip()
+            
+            if not query:
+                return jsonify({"error": "Query is required"}), 400
+            
+            # Get document
+            doc = db.query(Doc).filter(Doc.id == pdf_id).first()
+            if not doc:
+                return jsonify({"error": "Document not found"}), 404
+            
+            # Get document text from chunks
+            chunks = db.query(Chunk).filter(Chunk.doc_id == pdf_id).all()
+            document_text = "\n\n".join([chunk.text for chunk in chunks])
+            
+            # Generate answer using LLM
+            client = get_openai_client()
+            if client:
+                try:
+                    prompt = f"""
+                    Based on the following document, answer the user's question concisely and accurately.
+                    
+                    Document content:
+                    {document_text[:4000]}
+                    
+                    User question: {query}
+                    
+                    Instructions:
+                    - Provide a short, direct answer (2-3 sentences maximum)
+                    - Only use information from the document
+                    - If the answer isn't in the document, say "This information is not available in the document"
+                    - Be specific and cite relevant details when possible
+                    """
+                    
+                    response = client.chat.completions.create(
+                        model="gpt-3.5-turbo",
+                        messages=[{"role": "user", "content": prompt}],
+                        temperature=0.3,
+                        max_tokens=150
+                    )
+                    
+                    answer = response.choices[0].message.content.strip()
+                    return jsonify({"answer": answer})
+                    
+                except Exception as e:
+                    print(f"Error with OpenAI: {e}")
+                    # Fallback to simple text search
+                    return generate_fallback_answer(query, document_text)
+            else:
+                # Fallback when OpenAI is not available
+                return generate_fallback_answer(query, document_text)
+                
+        except Exception as e:
+            print(f"Error querying document: {e}")
+            return jsonify({"error": str(e)}), 500
         finally:
             db.close()
     

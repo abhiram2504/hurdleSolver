@@ -1,0 +1,140 @@
+/* Document Query Styles */
+.document-query {
+  background: #f8f9fa;
+  border-radius: 12px;
+  border: 2px solid #e9ecef;
+  overflow: hidden;
+  height: fit-content;
+  max-height: 80vh;
+  display: flex;
+  flex-direction: column;
+}
+
+.document-header {
+  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  color: white;
+  padding: 16px 20px;
+  margin: 0;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.document-header h3 {
+  margin: 0;
+  font-size: 1.2em;
+}
+
+.download-link {
+  color: white;
+  text-decoration: none;
+  background: rgba(255, 255, 255, 0.2);
+  padding: 8px 16px;
+  border-radius: 8px;
+  font-size: 0.9em;
+  font-weight: 500;
+  transition: all 0.2s ease;
+}
+
+.download-link:hover {
+  background: rgba(255, 255, 255, 0.3);
+  transform: translateY(-1px);
+}
+
+.query-section {
+  padding: 20px;
+}
+
+.query-section h4 {
+  margin: 0 0 16px 0;
+  color: #374151;
+  font-size: 1.1em;
+}
+
+.query-form {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.query-input {
+  width: 100%;
+  padding: 12px 16px;
+  border: 2px solid #e5e7eb;
+  border-radius: 8px;
+  font-size: 14px;
+  font-family: inherit;
+  resize: vertical;
+  transition: border-color 0.2s ease;
+}
+
+.query-input:focus {
+  outline: none;
+  border-color: #3b82f6;
+  box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.1);
+}
+
+.query-input:disabled {
+  background: #f9fafb;
+  color: #6b7280;
+}
+
+.query-btn {
+  background: linear-gradient(135deg, #3b82f6 0%, #1d4ed8 100%);
+  color: white;
+  border: none;
+  padding: 12px 24px;
+  border-radius: 8px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  align-self: flex-start;
+}
+
+.query-btn:hover:not(:disabled) {
+  transform: translateY(-1px);
+  box-shadow: 0 4px 12px rgba(59, 130, 246, 0.3);
+}
+
+.query-btn:disabled {
+  background: #9ca3af;
+  cursor: not-allowed;
+  transform: none;
+}
+
+.query-response {
+  margin-top: 20px;
+  padding: 16px;
+  background: #f0f9ff;
+  border: 1px solid #bae6fd;
+  border-radius: 8px;
+}
+
+.query-response h5 {
+  margin: 0 0 8px 0;
+  color: #0369a1;
+  font-size: 1em;
+}
+
+.query-response p {
+  margin: 0;
+  color: #374151;
+  line-height: 1.6;
+}
+
+/* Responsive Design */
+@media (max-width: 768px) {
+  .document-header {
+    flex-direction: column;
+    gap: 12px;
+    text-align: center;
+  }
+
+  .query-section {
+    padding: 16px;
+  }
+
+  .query-btn {
+    align-self: stretch;
+  }
+}

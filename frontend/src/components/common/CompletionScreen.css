@@ -1,0 +1,143 @@
+/* Completion Screen Styles */
+.completion-screen {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  min-height: 60vh;
+  padding: 40px 20px;
+}
+
+.completion-content {
+  background: white;
+  border-radius: 20px;
+  padding: 48px;
+  text-align: center;
+  box-shadow: 0 16px 40px rgba(15, 23, 42, 0.12);
+  max-width: 500px;
+  width: 100%;
+}
+
+.completion-header {
+  margin-bottom: 32px;
+}
+
+.completion-header h2 {
+  margin: 0 0 12px 0;
+  color: #1e293b;
+  font-size: 2.5em;
+  font-weight: 700;
+}
+
+.completion-header p {
+  margin: 0;
+  color: #64748b;
+  font-size: 1.2em;
+}
+
+.completion-stats {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(120px, 1fr));
+  gap: 24px;
+  margin: 32px 0;
+  padding: 24px;
+  background: #f8fafc;
+  border-radius: 12px;
+}
+
+.stat-item {
+  text-align: center;
+}
+
+.stat-value {
+  font-size: 2.5em;
+  font-weight: 800;
+  color: #3b82f6;
+  margin-bottom: 8px;
+}
+
+.stat-label {
+  color: #64748b;
+  font-size: 0.9em;
+  font-weight: 500;
+}
+
+.completion-actions {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+  margin-top: 32px;
+}
+
+.performance-btn {
+  background: linear-gradient(135deg, #8b5cf6 0%, #7c3aed 100%);
+  color: white;
+  border: none;
+  padding: 16px 32px;
+  border-radius: 12px;
+  font-size: 1.1em;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.3s ease;
+}
+
+.performance-btn:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 8px 25px rgba(139, 92, 246, 0.3);
+}
+
+.restart-btn {
+  background: linear-gradient(135deg, #3b82f6 0%, #1d4ed8 100%);
+  color: white;
+  border: none;
+  padding: 16px 32px;
+  border-radius: 12px;
+  font-size: 1.1em;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.3s ease;
+}
+
+.restart-btn:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 8px 25px rgba(59, 130, 246, 0.3);
+}
+
+/* Celebration animation */
+@keyframes celebrate {
+  0%,
+  100% {
+    transform: scale(1);
+  }
+  50% {
+    transform: scale(1.05);
+  }
+}
+
+.completion-header h2 {
+  animation: celebrate 2s ease-in-out infinite;
+}
+
+/* Responsive Design */
+@media (max-width: 768px) {
+  .completion-screen {
+    padding: 20px;
+  }
+
+  .completion-content {
+    padding: 32px 24px;
+  }
+
+  .completion-header h2 {
+    font-size: 2em;
+  }
+
+  .stat-value {
+    font-size: 2em;
+  }
+
+  .completion-stats {
+    grid-template-columns: repeat(auto-fit, minmax(100px, 1fr));
+    gap: 16px;
+    padding: 20px;
+  }
+}

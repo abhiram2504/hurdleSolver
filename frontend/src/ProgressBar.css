@@ -1,12 +1,18 @@
-/* Progress Bar Styles */
+/* Progress Bar Styles - Scarlet & Gray Theme */
 .progress-container {
-  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-  border-radius: 16px;
-  padding: 24px;
+  background: linear-gradient(
+    135deg,
+    #dc2626 0%,
+    #991b1b 100%
+  ); /* Scarlet gradient */
+  color: white;
+  border-radius: 20px;
+  padding: 28px;
   margin: 24px 0;
-  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.1);
+  box-shadow: 0 12px 40px rgba(220, 38, 38, 0.25), 0 4px 16px rgba(0, 0, 0, 0.1),
+    inset 0 1px 0 rgba(255, 255, 255, 0.1);
   backdrop-filter: blur(10px);
-  border: 1px solid rgba(255, 255, 255, 0.1);
+  border: 2px solid rgba(255, 255, 255, 0.1);
   position: relative;
   overflow: hidden;
 }
@@ -21,10 +27,10 @@
   background: linear-gradient(
     90deg,
     transparent,
-    rgba(255, 255, 255, 0.1),
+    rgba(255, 255, 255, 0.08),
     transparent
   );
-  animation: shine 3s infinite;
+  animation: shine 4s infinite;
 }
 
 @keyframes shine {
@@ -38,31 +44,79 @@
 
 /* Main Progress Bar */
 .progress-bar-wrapper {
-  margin-bottom: 20px;
+  margin-bottom: 24px;
+  position: relative;
 }
 
 .progress-bar-track {
   width: 100%;
-  height: 12px;
-  background: rgba(255, 255, 255, 0.2);
-  border-radius: 6px;
+  height: 16px;
+  background: linear-gradient(
+    90deg,
+    #6b7280,
+    #4b5563
+  ); /* Gray gradient background */
+  border-radius: 12px;
   overflow: hidden;
   position: relative;
-  box-shadow: inset 0 2px 4px rgba(0, 0, 0, 0.2);
+  box-shadow: inset 0 3px 8px rgba(0, 0, 0, 0.4),
+    0 1px 2px rgba(255, 255, 255, 0.1);
+  border: 1px solid rgba(255, 255, 255, 0.1);
 }
 
 .progress-bar-fill {
   height: 100%;
-  background: linear-gradient(90deg, #4caf50, #81c784, #4caf50);
-  background-size: 200% 100%;
-  border-radius: 6px;
-  transition: width 0.8s cubic-bezier(0.4, 0, 0.2, 1);
+  background: linear-gradient(
+    90deg,
+    #dc2626,
+    #ef4444,
+    #f87171,
+    #dc2626
+  ); /* Scarlet gradient */
+  background-size: 300% 100%;
+  border-radius: 12px;
+  transition: width 1s cubic-bezier(0.4, 0, 0.2, 1);
   position: relative;
-  animation: gradientShift 2s ease-in-out infinite;
-  box-shadow: 0 2px 8px rgba(76, 175, 80, 0.4);
+  animation: gradientFlow 3s ease-in-out infinite;
+  box-shadow: 0 0 20px rgba(220, 38, 38, 0.5), 0 2px 8px rgba(220, 38, 38, 0.3);
 }
 
-@keyframes gradientShift {
+.progress-bar-fill::before {
+  content: "";
+  position: absolute;
+  top: 1px;
+  left: 1px;
+  right: 1px;
+  height: 6px;
+  background: linear-gradient(
+    90deg,
+    rgba(255, 255, 255, 0.4),
+    rgba(255, 255, 255, 0.2),
+    transparent
+  );
+  border-radius: 10px;
+}
+
+.progress-bar-fill::after {
+  content: "";
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: linear-gradient(
+    90deg,
+    transparent 0%,
+    rgba(255, 255, 255, 0.3) 40%,
+    rgba(255, 255, 255, 0.5) 50%,
+    rgba(255, 255, 255, 0.3) 60%,
+    transparent 100%
+  );
+  animation: shimmer 2.5s infinite;
+  border-radius: 12px;
+}
+
+@keyframes gradientFlow {
   0%,
   100% {
     background-position: 0% 0%;
@@ -72,15 +126,24 @@
   }
 }
 
+@keyframes shimmer {
+  0% {
+    transform: translateX(-100%);
+  }
+  100% {
+    transform: translateX(200%);
+  }
+}
+
 .progress-bar-glow {
   position: absolute;
   top: 0;
   right: 0;
-  width: 20px;
+  width: 30px;
   height: 100%;
   background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.6));
-  border-radius: 6px;
-  animation: pulse 1.5s ease-in-out infinite;
+  border-radius: 12px;
+  animation: pulse 2s ease-in-out infinite;
 }
 
 @keyframes pulse {
@@ -95,15 +158,20 @@
 
 .progress-text {
   text-align: center;
-  margin-top: 12px;
-  font-weight: 600;
+  margin-top: 16px;
+  font-weight: 700;
   color: white;
-  text-shadow: 0 2px 4px rgba(0, 0, 0, 0.3);
+  text-shadow: 0 2px 8px rgba(0, 0, 0, 0.4);
+  font-size: 1.1em;
 }
 
 .complete-text {
-  font-size: 1.2em;
-  animation: bounce 1s ease-in-out infinite;
+  font-size: 1.3em;
+  background: linear-gradient(45deg, #ffffff, #f3f4f6, #ffffff);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+  animation: bounce 1.5s ease-in-out infinite;
 }
 
 @keyframes bounce {
@@ -115,10 +183,10 @@
     transform: translateY(0);
   }
   40% {
-    transform: translateY(-8px);
+    transform: translateY(-10px);
   }
   60% {
-    transform: translateY(-4px);
+    transform: translateY(-5px);
   }
 }
 
@@ -127,23 +195,53 @@
   display: flex;
   justify-content: space-around;
   align-items: center;
-  margin-top: 16px;
-  padding-top: 16px;
-  border-top: 1px solid rgba(255, 255, 255, 0.2);
+  margin-top: 20px;
+  padding-top: 20px;
+  border-top: 2px solid rgba(255, 255, 255, 0.15);
+  position: relative;
+}
+
+.stats-row::before {
+  content: "";
+  position: absolute;
+  top: 0;
+  left: 50%;
+  transform: translateX(-50%);
+  width: 60px;
+  height: 2px;
+  background: linear-gradient(
+    90deg,
+    transparent,
+    rgba(255, 255, 255, 0.4),
+    transparent
+  );
 }
 
 .stat-item {
   display: flex;
   flex-direction: column;
   align-items: center;
-  gap: 4px;
+  gap: 6px;
   color: white;
-  text-shadow: 0 2px 4px rgba(0, 0, 0, 0.3);
+  text-shadow: 0 2px 4px rgba(0, 0, 0, 0.4);
+  background: rgba(255, 255, 255, 0.08);
+  padding: 12px 16px;
+  border-radius: 12px;
+  backdrop-filter: blur(10px);
+  border: 1px solid rgba(255, 255, 255, 0.15);
+  transition: all 0.3s ease;
+}
+
+.stat-item:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 8px 25px rgba(0, 0, 0, 0.2);
+  background: rgba(255, 255, 255, 0.12);
 }
 
 .stat-icon {
-  font-size: 1.5em;
-  animation: float 2s ease-in-out infinite;
+  font-size: 1.6em;
+  animation: float 3s ease-in-out infinite;
+  filter: drop-shadow(0 2px 4px rgba(0, 0, 0, 0.3));
 }
 
 @keyframes float {
@@ -152,131 +250,235 @@
     transform: translateY(0);
   }
   50% {
-    transform: translateY(-4px);
+    transform: translateY(-6px);
   }
 }
 
 .stat-label {
-  font-size: 0.8em;
+  font-size: 0.85em;
   font-weight: 500;
   opacity: 0.9;
+  letter-spacing: 0.5px;
 }
 
 .stat-value {
-  font-size: 1.1em;
-  font-weight: 700;
+  font-size: 1.2em;
+  font-weight: 800;
+  background: linear-gradient(45deg, #ffffff, #f3f4f6);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
 }
 
 /* Milestone Markers */
 .milestone-markers {
   position: relative;
-  height: 30px;
-  margin-top: 16px;
+  height: 40px;
+  margin-top: 20px;
 }
 
 .milestone {
   position: absolute;
   top: 50%;
   transform: translate(-50%, -50%);
-  width: 24px;
-  height: 24px;
+  width: 28px;
+  height: 28px;
   border-radius: 50%;
   display: flex;
   align-items: center;
   justify-content: center;
-  font-size: 12px;
-  background: rgba(255, 255, 255, 0.2);
-  border: 2px solid rgba(255, 255, 255, 0.3);
-  transition: all 0.3s ease;
+  font-size: 14px;
+  font-weight: 700;
+  background: linear-gradient(135deg, #6b7280, #4b5563); /* Gray gradient */
+  border: 3px solid rgba(255, 255, 255, 0.6);
+  transition: all 0.4s cubic-bezier(0.4, 0, 0.2, 1);
   cursor: pointer;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.2);
+  position: relative;
+}
+
+.milestone::before {
+  content: "";
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  width: 8px;
+  height: 8px;
+  background: rgba(255, 255, 255, 0.7);
+  border-radius: 50%;
+  transform: translate(-50%, -50%);
+  transition: all 0.3s ease;
 }
 
 .milestone:hover {
-  transform: translate(-50%, -50%) scale(1.2);
+  transform: translate(-50%, -50%) scale(1.15);
+  box-shadow: 0 6px 20px rgba(0, 0, 0, 0.3);
 }
 
 .milestone.completed {
-  background: #4caf50;
-  border-color: #4caf50;
-  box-shadow: 0 0 12px rgba(76, 175, 80, 0.6);
-  animation: completedPulse 2s ease-in-out infinite;
+  background: linear-gradient(135deg, #dc2626, #991b1b); /* Scarlet gradient */
+  border-color: rgba(255, 255, 255, 0.8);
+  box-shadow: 0 0 20px rgba(220, 38, 38, 0.6), 0 4px 12px rgba(0, 0, 0, 0.2);
+  animation: completedGlow 3s ease-in-out infinite;
 }
 
-@keyframes completedPulse {
+.milestone.completed::before {
+  background: white;
+  width: 12px;
+  height: 12px;
+  box-shadow: 0 0 8px rgba(255, 255, 255, 0.8);
+}
+
+@keyframes completedGlow {
   0%,
   100% {
-    box-shadow: 0 0 12px rgba(76, 175, 80, 0.6);
+    box-shadow: 0 0 20px rgba(220, 38, 38, 0.6), 0 4px 12px rgba(0, 0, 0, 0.2);
   }
   50% {
-    box-shadow: 0 0 20px rgba(76, 175, 80, 0.8);
+    box-shadow: 0 0 30px rgba(220, 38, 38, 0.8), 0 6px 16px rgba(0, 0, 0, 0.3);
   }
 }
 
 .milestone.current {
-  background: #ff9800;
-  border-color: #ff9800;
-  box-shadow: 0 0 16px rgba(255, 152, 0, 0.8);
-  animation: currentBlink 1s ease-in-out infinite;
+  background: linear-gradient(135deg, #f59e0b, #d97706); /* Amber gradient */
+  border-color: rgba(255, 255, 255, 0.9);
+  box-shadow: 0 0 25px rgba(245, 158, 11, 0.8), 0 4px 16px rgba(0, 0, 0, 0.2);
+  animation: currentPulse 2s ease-in-out infinite;
+  transform: translate(-50%, -50%) scale(1.2);
 }
 
-@keyframes currentBlink {
+.milestone.current::before {
+  background: white;
+  width: 14px;
+  height: 14px;
+  box-shadow: 0 0 12px rgba(255, 255, 255, 1);
+}
+
+@keyframes currentPulse {
   0%,
   100% {
-    opacity: 1;
+    transform: translate(-50%, -50%) scale(1.2);
+    box-shadow: 0 0 25px rgba(245, 158, 11, 0.8), 0 4px 16px rgba(0, 0, 0, 0.2);
   }
   50% {
-    opacity: 0.7;
+    transform: translate(-50%, -50%) scale(1.35);
+    box-shadow: 0 0 35px rgba(245, 158, 11, 1), 0 6px 20px rgba(0, 0, 0, 0.3);
   }
 }
 
 .milestone.boss {
-  width: 28px;
-  height: 28px;
-  background: linear-gradient(45deg, #ffd700, #ffeb3b);
-  border-color: #ffd700;
-  box-shadow: 0 0 20px rgba(255, 215, 0, 0.8);
+  width: 32px;
+  height: 32px;
+  background: linear-gradient(45deg, #ffd700, #ffeb3b, #ffd700);
+  border-color: rgba(255, 255, 255, 1);
+  box-shadow: 0 0 30px rgba(255, 215, 0, 0.8), 0 4px 16px rgba(0, 0, 0, 0.2);
+  background-size: 200% 200%;
+  animation: bossShimmer 2s ease-in-out infinite;
 }
 
-.milestone.boss.completed {
-  animation: bossGlow 2s ease-in-out infinite;
+.milestone.boss::before {
+  background: white;
+  width: 16px;
+  height: 16px;
+  box-shadow: 0 0 12px rgba(255, 255, 255, 1);
 }
 
-@keyframes bossGlow {
+@keyframes bossShimmer {
   0%,
   100% {
-    box-shadow: 0 0 20px rgba(255, 215, 0, 0.8);
+    background-position: 0% 0%;
     transform: translate(-50%, -50%) scale(1);
   }
   50% {
-    box-shadow: 0 0 30px rgba(255, 215, 0, 1);
+    background-position: 100% 100%;
     transform: translate(-50%, -50%) scale(1.1);
+  }
+}
+
+.milestone.boss.completed {
+  animation: bossCompleted 2s ease-in-out infinite;
+}
+
+@keyframes bossCompleted {
+  0%,
+  100% {
+    box-shadow: 0 0 30px rgba(255, 215, 0, 0.8), 0 4px 16px rgba(0, 0, 0, 0.2);
+    transform: translate(-50%, -50%) scale(1);
+  }
+  50% {
+    box-shadow: 0 0 50px rgba(255, 215, 0, 1), 0 8px 25px rgba(0, 0, 0, 0.3);
+    transform: translate(-50%, -50%) scale(1.15);
   }
 }
 
 /* Responsive Design */
 @media (max-width: 768px) {
   .progress-container {
-    padding: 16px;
+    padding: 20px;
     margin: 16px 0;
   }
 
   .stats-row {
     flex-direction: row;
-    gap: 16px;
+    gap: 12px;
   }
 
   .stat-item {
     flex: 1;
+    padding: 10px 12px;
+  }
+
+  .stat-icon {
+    font-size: 1.4em;
+  }
+
+  .stat-value {
+    font-size: 1.1em;
   }
 
   .milestone {
-    width: 20px;
-    height: 20px;
-    font-size: 10px;
+    width: 24px;
+    height: 24px;
+    font-size: 12px;
+  }
+
+  .milestone::before {
+    width: 6px;
+    height: 6px;
+  }
+
+  .milestone.completed::before {
+    width: 10px;
+    height: 10px;
+  }
+
+  .milestone.current::before {
+    width: 12px;
+    height: 12px;
   }
 
   .milestone.boss {
-    width: 24px;
-    height: 24px;
+    width: 28px;
+    height: 28px;
+  }
+
+  .milestone.boss::before {
+    width: 14px;
+    height: 14px;
+  }
+}
+
+@media (max-width: 480px) {
+  .progress-container {
+    padding: 16px;
+  }
+
+  .stats-row {
+    flex-wrap: wrap;
+    gap: 8px;
+  }
+
+  .stat-item {
+    min-width: calc(50% - 4px);
   }
 }

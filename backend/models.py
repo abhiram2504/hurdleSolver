@@ -60,6 +60,7 @@ class Attempt(Base):
     answer_json: Mapped[dict] = mapped_column(JSON, default={})
     correct: Mapped[bool] = mapped_column(Boolean, default=False)
     time_ms: Mapped[int] = mapped_column(Integer, default=0)
+    is_skip: Mapped[bool] = mapped_column(Boolean, default=False)
     confidence: Mapped[Optional[int]] = mapped_column(Integer, nullable=True)
     created_at: Mapped[datetime] = mapped_column(DateTime, default=datetime.utcnow)
 
@@ -67,9 +68,8 @@ class Progress(Base):
     __tablename__ = "progress"
     user_id: Mapped[int] = mapped_column(ForeignKey("app_user.id"), primary_key=True)
     doc_id: Mapped[int] = mapped_column(ForeignKey("doc.id"), primary_key=True)
-    cleared: Mapped[int] = mapped_column(Integer, default=0)
+    cleared: Mapped[int] = mapped_column(Integer, default=0)  # Number of chunks completed
+    current_chunk_question: Mapped[int] = mapped_column(Integer, default=0)  # Current question within chunk (0-2)
+    questions_per_chunk: Mapped[int] = mapped_column(Integer, default=1)  # Number of questions per chunk
     hearts: Mapped[int] = mapped_column(Integer, default=5)
-    xp: Mapped[int] = mapped_column(Integer, default=0)
-    streak: Mapped[int] = mapped_column(Integer, default=0)
-    combo: Mapped[int] = mapped_column(Integer, default=0)
     updated_at: Mapped[datetime] = mapped_column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)

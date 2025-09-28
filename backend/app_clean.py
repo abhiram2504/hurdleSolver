@@ -16,28 +16,42 @@ import textstat
 
 from models import Base, Doc, Chunk, Task, Progress, Attempt
 from db import engine, SessionLocal
-try:
-    from openai import OpenAI
-    OPENAI_AVAILABLE = True
-except ImportError:
-    OPENAI_AVAILABLE = False
-    print("OpenAI not available - using fallback questions")
 
+from openai import OpenAI
 # Load environment variables
+
+OPENAI_AVAILABLE=True
+
 load_dotenv()
 
 def get_openai_client():
     """Initialize and return OpenAI client if API key is available"""
     if not OPENAI_AVAILABLE:
+        print("OpenAI library not available")
         return None
     
     api_key = os.getenv("OPENAI_API_KEY")
-    if api_key:
-        try:
-            return OpenAI(api_key=api_key)
-        except Exception as e:
-            print(f"Error initializing OpenAI client: {e}")
-    return None
+    if not api_key:
+        print("OPENAI_API_KEY not found in environment variables")
+        print("Please set your OpenAI API key:")
+        print("1. Create a .env file in the backend directory")
+        print("2. Add: OPENAI_API_KEY=your-actual-api-key-here")
+        print("3. Get your API key from: https://platform.openai.com/api-keys")
+        return None
+    
+    if api_key == "your-openai-api-key-here" or api_key == "your-actual-api-key-here":
+        print("Please replace the placeholder API key with your actual OpenAI API key")
+        return None
+    
+    try:
+        # Initialize OpenAI client with just the API key
+        client = OpenAI(api_key=api_key)
+        print("OpenAI client initialized successfully")
+        return client
+    except Exception as e:
+        print(f"Error initializing OpenAI client: {e}")
+        print("Please check your API key is valid")
+        return None
 
 def extract_pdf_text(file_path):
     """Extract text from PDF using PyPDF2"""
@@ -141,146 +155,341 @@ def categorize_topic(text):
     return 'general'
 
 def analyze_user_performance(user_id, doc_id, db_session):
-    """Analyze user performance by topic categories"""
-    # Get all attempts for this user and document
-    attempts = db_session.query(Attempt, Task, Chunk).join(Task, Attempt.task_id == Task.id).join(Chunk, Task.chunk_id == Chunk.id).filter(Task.doc_id == doc_id, Attempt.user_id == user_id).all()
+    """Analyze user performance by topic categories based on progress"""
+    # Get progress and chunks since we no longer store attempts
+    progress = db_session.query(Progress).filter_by(doc_id=doc_id, user_id=user_id).first()
+    chunks = db_session.query(Chunk).filter_by(doc_id=doc_id).order_by(Chunk.idx).all()
     
-    if not attempts:
-        return {"message": "No attempts found"}
+    if not progress or not chunks:
+        return {"message": "No progress data found"}
     
-    # Categorize performance by topic
+    # Categorize performance by topic based on completed chunks
     topic_performance = {}
+    total_chunks = len(chunks)
+    completed_chunks = min(progress.cleared, total_chunks)
     
-    for attempt, task, chunk in attempts:
+    for i, chunk in enumerate(chunks):
         topic = categorize_topic(chunk.text)
         
         if topic not in topic_performance:
             topic_performance[topic] = {
-                'correct': 0,
+                'completed': 0,
                 'total': 0,
-                'avg_time': 0,
-                'total_time': 0
+                'completion_rate': 0
             }
         
         topic_performance[topic]['total'] += 1
-        topic_performance[topic]['total_time'] += attempt.time_ms
-        
-        if attempt.correct:
-            topic_performance[topic]['correct'] += 1
+        if i < completed_chunks:
+            topic_performance[topic]['completed'] += 1
     
-    # Calculate averages and identify strengths/weaknesses
+    # Calculate completion rates
     for topic, stats in topic_performance.items():
-        stats['accuracy'] = (stats['correct'] / stats['total']) * 100 if stats['total'] > 0 else 0
-        stats['avg_time'] = stats['total_time'] / stats['total'] if stats['total'] > 0 else 0
+        stats['completion_rate'] = (stats['completed'] / stats['total']) * 100 if stats['total'] > 0 else 0
     
     # Find best and worst topics
     if topic_performance:
-        best_topic = max(topic_performance.keys(), key=lambda t: topic_performance[t]['accuracy'])
-        worst_topic = min(topic_performance.keys(), key=lambda t: topic_performance[t]['accuracy'])
+        best_topic = max(topic_performance.keys(), key=lambda t: topic_performance[t]['completion_rate'])
+        worst_topic = min(topic_performance.keys(), key=lambda t: topic_performance[t]['completion_rate'])
         
         return {
             'topic_performance': topic_performance,
             'best_topic': best_topic,
             'worst_topic': worst_topic,
-            'total_attempts': len(attempts)
+            'total_chunks': total_chunks,
+            'completed_chunks': completed_chunks,
+            'overall_completion': (completed_chunks / total_chunks) * 100 if total_chunks > 0 else 0
         }
     
     return {"message": "No performance data available"}
 
 def generate_question(chunk_text, question_type="choice"):
-    """Generate a multiple choice question focusing on important and niche topics"""
+    """Generate a multiple choice question using OpenAI - no hardcoded fallbacks"""
     client = get_openai_client()
     
-    # Extract important concepts first
+    if not client:
+        return {
+            "type": "choice",
+            "question": "OpenAI API not configured - cannot generate questions",
+            "options": [
+                "Please configure OpenAI API key",
+                "Service temporarily unavailable", 
+                "Check your API configuration",
+                "Try again later"
+            ],
+            "correct": 0,
+            "explanation": "OpenAI API is required for dynamic question generation. Please configure your API key."
+        }
+    
+    # Extract important concepts to guide question generation
     important_concepts = extract_important_concepts(chunk_text)
     
     prompt = f"""
-    Create a challenging multiple choice question about NICHE and IMPORTANT topics from this text. 
-    Focus on specific details, technical concepts, and key information that tests deep understanding.
+    Create a challenging and educational multiple choice question from this text.
+    Focus on testing deep understanding, critical thinking, and analysis rather than simple memorization.
     
-    Text: {chunk_text}
+    TEXT TO ANALYZE:
+    {chunk_text[:3000]}
     
-    Important concepts to focus on: {', '.join(important_concepts) if important_concepts else 'key technical details'}
+    KEY CONCEPTS TO FOCUS ON: {', '.join(important_concepts) if important_concepts else 'main ideas and relationships'}
     
-    Requirements:
-    - Question must be ONE line only (max 15 words)
-    - Focus on NICHE, SPECIFIC, and IMPORTANT details (not general topics)
-    - Must have exactly 4 options (A, B, C, D)
-    - All options should be plausible and realistic (not obviously wrong)
-    - Options should be similar in length and complexity
-    - One correct answer based on specific information in the text
-    - Make incorrect options believable but subtly wrong
-    - Include explanation of why the correct answer is right
+    QUESTION REQUIREMENTS:
+    - Test analytical thinking: WHY, HOW, WHAT IF, or cause-and-effect scenarios
+    - Focus on understanding relationships, implications, or applications
+    - Avoid simple factual recall - make it thought-provoking
+    - Keep question concise but clear (maximum 20 words)
+    - Base everything strictly on the provided text content
     
-    Return JSON: {{"type": "choice", "question": "specific niche question about important detail?", "options": ["Realistic Option A", "Realistic Option B", "Realistic Option C", "Realistic Option D"], "correct": 0, "explanation": "detailed explanation why this specific answer is correct"}}
+    ANSWER OPTIONS REQUIREMENTS:
+    - Generate exactly 4 sophisticated and plausible options
+    - Make incorrect options believable but clearly wrong to someone who understands
+    - Base distractors on common misconceptions or partial understanding
+    - Ensure all options have similar complexity and length
+    - Make the question genuinely educational
+    
+    EXPLANATION REQUIREMENTS:
+    - Provide a comprehensive explanation of why the correct answer is right
+    - Briefly explain why the other options are incorrect
+    - Help reinforce the key learning concepts
+    
+    IMPORTANT: Base everything on the actual text content. Do not add external knowledge.
+    
+    Return your response as valid JSON in this exact format:
+    {{
+        "type": "choice",
+        "question": "Your analytical question here",
+        "options": [
+            "Sophisticated correct option",
+            "Plausible but incorrect option", 
+            "Another believable distractor",
+            "Final convincing wrong answer"
+        ],
+        "correct": 0,
+        "explanation": "Detailed explanation of the correct answer and why others are wrong, based on the text"
+    }}
     """
     
     try:
-        if client:
-            response = client.chat.completions.create(
-                model="gpt-3.5-turbo",
-                messages=[{"role": "user", "content": prompt}],
-                temperature=0.7
-            )
-            result = json.loads(response.choices[0].message.content)
-            return result
+        response = client.chat.completions.create(
+            model="gpt-3.5-turbo",
+            messages=[{"role": "user", "content": prompt}],
+            temperature=0.8,
+            max_tokens=600
+        )
+        
+        # Clean the response content
+        content = response.choices[0].message.content.strip()
+        
+        # Remove any markdown formatting if present
+        if content.startswith("```json"):
+            content = content[7:]
+        if content.endswith("```"):
+            content = content[:-3]
+            content = content.strip()
+        
+        # Parse JSON
+        result = json.loads(content)
+        
+        # Validate the response structure
+        required_keys = ["type", "question", "options", "correct", "explanation"]
+        if not all(key in result for key in required_keys):
+            raise ValueError(f"Missing required keys. Got: {list(result.keys())}")
+        
+        if len(result["options"]) != 4:
+            raise ValueError(f"Must have exactly 4 options, got {len(result['options'])}")
+        
+        if not (0 <= result["correct"] <= 3):
+            raise ValueError(f"Correct answer index must be 0-3, got {result['correct']}")
+        
+        # Shuffle the options to randomize correct answer position
+        import random
+        options = result["options"]
+        correct_answer = options[result["correct"]]
+        
+        # Create a list of (option, is_correct) pairs
+        option_pairs = [(option, i == result["correct"]) for i, option in enumerate(options)]
+        
+        # Use deterministic shuffle based on chunk text hash
+        # This ensures the same chunk always produces the same question order
+        import hashlib
+        chunk_hash = hashlib.md5(chunk_text.encode()).hexdigest()
+        random.seed(int(chunk_hash[:8], 16))  # Use first 8 chars of hash as seed
+        random.shuffle(option_pairs)
+        random.seed()  # Reset random seed
+        
+        # Extract shuffled options and find new correct index
+        shuffled_options = [pair[0] for pair in option_pairs]
+        new_correct_index = next(i for i, pair in enumerate(option_pairs) if pair[1])
+        
+        # Update result with shuffled data
+        result["options"] = shuffled_options
+        result["correct"] = new_correct_index
+        
+        # Ensure type is set correctly
+        result["type"] = question_type
+        
+        return result
+        
+    except json.JSONDecodeError as e:
+        print(f"JSON parsing error: {e}")
+        print(f"Raw response: {content}")
+        return generate_emergency_fallback(chunk_text)
     except Exception as e:
         print(f"Error generating question with OpenAI: {e}")
+        return generate_emergency_fallback(chunk_text)
+
+def generate_question_with_context(chunk_text, question_type="choice", question_number=1, total_questions=3):
+    """Generate a question with context about which question this is in the sequence"""
+    client = get_openai_client()
     
-    # Enhanced fallback question generation focusing on important concepts
-    concepts = extract_important_concepts(chunk_text)
+    if not client:
+        return generate_emergency_fallback(chunk_text)
     
-    if concepts and len(concepts) >= 2:
-        main_concept = concepts[0]
-        alt_concept = concepts[1]
-        # Create more specific questions about the concept
-        question = f"What is the primary characteristic of {main_concept.lower()}?"
-        options = [
-            f"It enables specific functionality",
-            f"It provides {alt_concept.lower()} capabilities", 
-            f"It replaces traditional methods",
-            f"It simplifies complex processes"
-        ]
-        explanation = f"The text specifically describes how {main_concept} functions as a key component."
-    elif concepts:
-        main_concept = concepts[0]
-        question = f"How does {main_concept.lower()} function in this context?"
-        options = [
-            "It processes information systematically",
-            "It stores data temporarily",
-            "It validates input parameters",
-            "It generates random outputs"
-        ]
-        explanation = f"The text explains the specific function of {main_concept} in detail."
-    else:
-        # Find specific details in the text
-        sentences = re.split(r'[.!?]+', chunk_text)
-        if sentences and len(sentences) > 1:
-            # Create question about relationship between concepts
-            question = "What relationship is described in the text?"
-            options = [
-                "A hierarchical dependency structure",
-                "A parallel processing system",
-                "An independent component model",
-                "A reverse feedback mechanism"
-            ]
-            explanation = "The text describes specific relationships between the mentioned concepts."
-        else:
-            question = "What methodology is primarily discussed?"
-            options = [
-                "A systematic approach to problem-solving",
-                "A random trial-and-error method", 
-                "A theoretical framework only",
-                "A simplified overview technique"
-            ]
-            explanation = "The text focuses on a specific systematic methodology."
+    # Extract important concepts to guide question generation
+    important_concepts = extract_important_concepts(chunk_text)
+    
+    # Adjust question focus based on question number
+    focus_instructions = {
+        1: "Focus on fundamental concepts and main ideas",
+        2: "Focus on relationships, implications, or applications", 
+        3: "Focus on analysis, evaluation, or synthesis of concepts"
+    }
+    
+    current_focus = focus_instructions.get(question_number, "Focus on key concepts and understanding")
+    
+    prompt = f"""
+    Create a challenging and educational multiple choice question from this text.
+    This is question {question_number} of {total_questions} for this section.
+    
+    TEXT TO ANALYZE:
+    {chunk_text[:3000]}
+    
+    KEY CONCEPTS TO FOCUS ON: {', '.join(important_concepts) if important_concepts else 'main ideas and relationships'}
+    
+    QUESTION FOCUS FOR THIS SEQUENCE POSITION:
+    {current_focus}
+    
+    QUESTION REQUIREMENTS:
+    - Test analytical thinking: WHY, HOW, WHAT IF, or cause-and-effect scenarios
+    - Avoid repeating similar question types from previous questions in this section
+    - Keep question concise but clear (maximum 20 words)
+    - Base everything strictly on the provided text content
+    - Make this question distinct from typical question {question_number} patterns
+    
+    ANSWER OPTIONS REQUIREMENTS:
+    - Generate exactly 4 sophisticated and plausible options
+    - Make incorrect options believable but clearly wrong to someone who understands
+    - Base distractors on common misconceptions or partial understanding
+    - Ensure all options have similar complexity and length
+    
+    EXPLANATION REQUIREMENTS:
+    - Provide a comprehensive explanation of why the correct answer is right
+    - Briefly explain why the other options are incorrect
+    - Include a helpful hint for students who get it wrong
+    
+    Return your response as valid JSON in this exact format:
+    {{
+        "type": "choice",
+        "question": "Your analytical question here",
+        "options": [
+            "Sophisticated correct option",
+            "Plausible but incorrect option", 
+            "Another believable distractor",
+            "Final convincing wrong answer"
+        ],
+        "correct": 0,
+        "explanation": "Detailed explanation of the correct answer and why others are wrong",
+        "hint": "Helpful hint for students who get this wrong"
+    }}
+    """
+    
+    try:
+        response = client.chat.completions.create(
+            model="gpt-3.5-turbo",
+            messages=[{"role": "user", "content": prompt}],
+            temperature=0.8,
+            max_tokens=700
+        )
+        
+        # Clean the response content
+        content = response.choices[0].message.content.strip()
+        
+        # Remove any markdown formatting if present
+        if content.startswith("```json"):
+            content = content[7:]
+        if content.endswith("```"):
+            content = content[:-3]
+        content = content.strip()
+        
+        # Parse JSON
+        result = json.loads(content)
+        
+        # Validate the response structure
+        required_keys = ["type", "question", "options", "correct", "explanation"]
+        if not all(key in result for key in required_keys):
+            raise ValueError(f"Missing required keys. Got: {list(result.keys())}")
+        
+        if len(result["options"]) != 4:
+            raise ValueError(f"Must have exactly 4 options, got {len(result['options'])}")
+        
+        if not (0 <= result["correct"] <= 3):
+            raise ValueError(f"Correct answer index must be 0-3, got {result['correct']}")
+        
+        # Shuffle the options to randomize correct answer position
+        import random
+        options = result["options"]
+        correct_answer = options[result["correct"]]
+        
+        # Create a list of (option, is_correct) pairs
+        option_pairs = [(option, i == result["correct"]) for i, option in enumerate(options)]
+        
+        # Use deterministic shuffle based on chunk text hash
+        # This ensures the same chunk always produces the same question order
+        import hashlib
+        chunk_hash = hashlib.md5(chunk_text.encode()).hexdigest()
+        random.seed(int(chunk_hash[:8], 16))  # Use first 8 chars of hash as seed
+        random.shuffle(option_pairs)
+        random.seed()  # Reset random seed
+        
+        # Extract shuffled options and find new correct index
+        shuffled_options = [pair[0] for pair in option_pairs]
+        new_correct_index = next(i for i, pair in enumerate(option_pairs) if pair[1])
+        
+        # Update result with shuffled data
+        result["options"] = shuffled_options
+        result["correct"] = new_correct_index
+        
+        # Ensure type is set correctly and add hint if not present
+        result["type"] = question_type
+        if "hint" not in result:
+            result["hint"] = "Think about the key concepts mentioned in the text and how they relate to each other."
+        
+        return result
+        
+    except json.JSONDecodeError as e:
+        print(f"JSON parsing error: {e}")
+        return generate_emergency_fallback(chunk_text)
+    except Exception as e:
+        print(f"Error generating question with OpenAI: {e}")
+        return generate_emergency_fallback(chunk_text)
+
+def generate_emergency_fallback(chunk_text):
+    """Emergency fallback when OpenAI completely fails"""
+    # Extract first meaningful sentence for context
+    sentences = [s.strip() for s in chunk_text.split('.') if s.strip() and len(s.strip()) > 20]
+    context = sentences[0][:150] + "..." if sentences else "the provided content"
     
     return {
         "type": "choice",
-        "question": question,
-        "options": options,
+        "question": "What is the main focus of this section?",
+        "options": [
+            "The specific content described in the text",
+            "General background information only",
+            "Unrelated technical specifications", 
+            "Abstract theoretical concepts only"
+        ],
         "correct": 0,
-        "explanation": explanation
+        "explanation": f"This section focuses on: {context}",
+        "hint": "Look for the main topic or theme discussed in the text."
     }
 
 def validate_answer_with_openai(user_answer_idx, correct_idx, question, options, chunk_text):
@@ -319,27 +528,120 @@ def validate_answer_with_openai(user_answer_idx, correct_idx, question, options,
     # Fallback explanation
     return f"The correct answer is {correct_option}."
 
-def generate_fallback_answer(query, document_text):
-    """Generate a simple answer when LLM is not available"""
-    query_lower = query.lower()
-    doc_lower = document_text.lower()
+def generate_completion_message(user_id, doc_id, db):
+    """Generate a simple completion message based on user performance"""
+    progress = db.query(Progress).filter_by(doc_id=doc_id, user_id=user_id).first()
+    chunks = db.query(Chunk).filter_by(doc_id=doc_id).order_by(Chunk.idx).all()
     
-    # Simple keyword search
-    sentences = document_text.split('.')
+    if not progress or not chunks:
+        return "Congratulations on completing the document! Great job learning!"
+    
+    total_chunks = len(chunks)
+    completed_chunks = min(progress.cleared, total_chunks)
+    completion_rate = (completed_chunks / total_chunks) * 100 if total_chunks > 0 else 0
+    
+    # Simple completion messages based on performance
+    if completion_rate >= 90:
+        return f"🎉 Outstanding work! You completed {completed_chunks} out of {total_chunks} sections and earned {progress.xp} XP with a {progress.streak}-question streak. You've shown excellent understanding of the material!"
+    elif completion_rate >= 70:
+        return f"🌟 Great job! You completed {completed_chunks} out of {total_chunks} sections and earned {progress.xp} XP. Your {progress.streak}-question streak shows good consistency. Keep up the excellent work!"
+    elif completion_rate >= 50:
+        return f"👍 Good progress! You completed {completed_chunks} out of {total_chunks} sections and earned {progress.xp} XP. You're building good learning momentum with your efforts!"
+    else:
+        return f"🚀 Nice start! You completed {completed_chunks} out of {total_chunks} sections and earned {progress.xp} XP. Every step forward is progress - keep going!"
+
+def find_relevant_chunks(query, chunks):
+    """Find the most relevant chunks for a given query using keyword matching"""
+    query_words = set(word.lower().strip('.,!?;:') for word in query.split() if len(word) > 2)
+    
+    chunk_scores = []
+    for chunk in chunks:
+        chunk_words = set(word.lower().strip('.,!?;:') for word in chunk.text.split())
+        
+        # Calculate relevance score based on keyword overlap
+        common_words = query_words.intersection(chunk_words)
+        score = len(common_words)
+        
+        # Boost score for exact phrase matches
+        if query.lower() in chunk.text.lower():
+            score += 5
+        
+        # Boost score for partial phrase matches
+        for word in query_words:
+            if word in chunk.text.lower():
+                score += 1
+        
+        chunk_scores.append((chunk, score))
+    
+    # Sort by relevance score and return top chunks
+    chunk_scores.sort(key=lambda x: x[1], reverse=True)
+    
+    # Return top 3 most relevant chunks, or all chunks if less than 3
+    relevant_chunks = [chunk for chunk, score in chunk_scores[:3] if score > 0]
+    
+    # If no relevant chunks found, return first 2 chunks as fallback
+    if not relevant_chunks:
+        relevant_chunks = chunks[:2]
+    
+    return relevant_chunks
+
+def generate_enhanced_fallback_answer(query, document_text, document_title):
+    """Generate an enhanced answer when LLM is not available"""
+    query_lower = query.lower()
+    
+    # Advanced keyword search with context
+    sentences = [s.strip() for s in document_text.split('.') if s.strip()]
     relevant_sentences = []
     
+    # Score sentences based on relevance
+    sentence_scores = []
+    query_words = [word for word in query_lower.split() if len(word) > 2]
+    
     for sentence in sentences:
-        if any(word in sentence.lower() for word in query_lower.split() if len(word) > 2):
-            relevant_sentences.append(sentence.strip())
+        sentence_lower = sentence.lower()
+        score = 0
+        
+        # Count keyword matches
+        for word in query_words:
+            if word in sentence_lower:
+                score += 1
+        
+        # Boost for exact phrase matches
+        if len(query_words) > 1:
+            query_phrase = ' '.join(query_words[:3])  # First 3 words
+            if query_phrase in sentence_lower:
+                score += 3
+        
+        if score > 0:
+            sentence_scores.append((sentence, score))
+    
+    # Sort by relevance and get top sentences
+    sentence_scores.sort(key=lambda x: x[1], reverse=True)
+    relevant_sentences = [sentence for sentence, score in sentence_scores[:3]]
     
     if relevant_sentences:
-        # Return first few relevant sentences
-        answer = '. '.join(relevant_sentences[:2])
-        if len(answer) > 200:
-            answer = answer[:200] + "..."
-        return jsonify({"answer": answer})
+        # Create a coherent answer from relevant sentences
+        answer = '. '.join(relevant_sentences)
+        if len(answer) > 400:
+            answer = answer[:400] + "..."
+        
+        return jsonify({
+            "answer": answer,
+            "source_chunks": len(relevant_sentences),
+            "document_title": document_title,
+            "confidence": "medium"
+        })
     else:
-        return jsonify({"answer": "I couldn't find specific information about your query in the document. Try rephrasing your question or using different keywords."})
+        return jsonify({
+            "answer": f"I couldn't find specific information about '{query}' in {document_title}. The document may not contain details about this topic, or you might want to try rephrasing your question with different keywords.",
+            "source_chunks": 0,
+            "document_title": document_title,
+            "confidence": "low"
+        })
+
+def generate_fallback_answer(query, document_text):
+    """Legacy fallback function for compatibility"""
+    return generate_enhanced_fallback_answer(query, document_text, "Document")
 
 def create_app():
     app = Flask(__name__)
@@ -396,7 +698,7 @@ def create_app():
                 db.add(doc)
                 db.flush()  # Get the doc.id
                 
-                # Create chunks and questions (only multiple choice)
+                # Create chunks only (questions will be generated dynamically)
                 for chunk_data in chunks_data:
                     # Create chunk
                     chunk = Chunk(
@@ -407,28 +709,13 @@ def create_app():
                         difficulty=chunk_data['difficulty']
                     )
                     db.add(chunk)
-                    db.flush()  # Get the chunk.id
-                    
-                    # Generate multiple choice question for this chunk
-                    question_data = generate_question(chunk_data['text'], 'choice')
-                    
-                    # Create task
-                    task = Task(
-                        doc_id=doc.id,
-                        chunk_id=chunk.id,
-                        type=question_data['type'],
-                        payload_json=question_data,
-                        difficulty='M'
-                    )
-                    db.add(task)
+                    # No task creation - questions will be generated dynamically
                 
                 # Create initial progress record
                 progress = Progress(
                     user_id=1,  # Default user for now
                     doc_id=doc.id,
-                    cleared=0,
-                    xp=0,
-                    streak=0
+                    cleared=0
                 )
                 db.add(progress)
                 
@@ -464,16 +751,14 @@ def create_app():
             # Get current chunk and task
             chunks = db.query(Chunk).filter_by(doc_id=pdf_id).order_by(Chunk.idx).all()
             
+            # Check if all chunks are completed
             if progress.cleared >= len(chunks):
                 return jsonify({'done': True})
             
             current_chunk = chunks[progress.cleared]
-            task = db.query(Task).filter_by(chunk_id=current_chunk.id).first()
             
-            if not task:
-                return jsonify({'error': 'No task found for this chunk'}), 404
-            
-            # No boss battles - removed feature
+            # Generate fresh question dynamically for this chunk
+            question_data = generate_question(current_chunk.text, 'choice')
             
             # Get document for preview
             doc = db.query(Doc).filter_by(id=pdf_id).first()
@@ -485,13 +770,19 @@ def create_app():
             
             return jsonify({
                 'chunk': current_chunk.text,
-                'task': task.payload_json,
-                'task_type': task.type,
+                'task': question_data,
+                'task_type': 'choice',
                 'is_boss': False,  # No boss battles
                 'idx': progress.cleared,
                 'difficulty': current_chunk.difficulty,
                 'document_text': full_text,
-                'document_title': doc.title if doc else "Document"
+                'document_title': doc.title if doc else "Document",
+                'question_progress': {
+                    'current_question': progress.current_chunk_question + 1,
+                    'total_questions': progress.questions_per_chunk,
+                    'chunk_number': progress.cleared + 1,
+                    'total_chunks': len(chunks)
+                }
             })
             
         finally:
@@ -506,7 +797,7 @@ def create_app():
             is_skip = data.get('skip', False)
             time_taken = data.get('time_ms', 0)  # Time in milliseconds
             
-            # Get progress and current task
+            # Get progress and current chunk
             progress = db.query(Progress).filter_by(doc_id=pdf_id, user_id=1).first()
             if not progress:
                 return jsonify({'error': 'Document not found'}), 404
@@ -516,43 +807,32 @@ def create_app():
                 return jsonify({'error': 'All chunks completed'}), 400
             
             current_chunk = chunks[progress.cleared]
-            task = db.query(Task).filter_by(chunk_id=current_chunk.id).first()
+            
+            # Generate the current question to validate against
+            current_question = generate_question(current_chunk.text, 'choice')
             
             # Handle skip
             if is_skip:
-                # Record skip attempt
-                attempt = Attempt(
-                    task_id=task.id,
-                    user_id=1,
-                    answer_json={'skipped': True},
-                    correct=False,
-                    time_ms=time_taken
-                )
-                db.add(attempt)
-                
+                # Move to next chunk (since we only have 1 question per chunk)
                 progress.cleared += 1
-                progress.streak = 0  # Reset streak for skipping
+                progress.current_chunk_question = 0
                 db.commit()
                 
                 return jsonify({
                     'correct': False,
-                    'score': 0,
-                    'xp': progress.xp,
-                    'streak': progress.streak,
-                    'current': progress.cleared,
                     'explanation': 'Question skipped. Try to answer the next one!',
-                    'skipped': True
+                    'new_progress': progress.cleared,
+                    'total_chunks': len(chunks)
                 })
             
             # Validate answer (only multiple choice now)
-            task_data = task.payload_json
             is_correct = False
             score = 0
             explanation = ""
             
             try:
                 selected_option = int(user_answer)
-                correct_option = task_data.get('correct', 0)
+                correct_option = current_question.get('correct', 0)
                 is_correct = selected_option == correct_option
                 score = 100 if is_correct else 0
                 
@@ -560,8 +840,8 @@ def create_app():
                 explanation = validate_answer_with_openai(
                     selected_option, 
                     correct_option, 
-                    task_data.get('question', ''),
-                    task_data.get('options', []),
+                    current_question.get('question', ''),
+                    current_question.get('options', []),
                     current_chunk.text
                 )
                 
@@ -570,41 +850,28 @@ def create_app():
                 score = 0
                 explanation = "Please select a valid option."
             
-            # Record attempt in database
-            attempt = Attempt(
-                task_id=task.id,
-                user_id=1,
-                answer_json={'selected_option': selected_option, 'user_answer': user_answer},
-                correct=is_correct,
-                time_ms=time_taken
-            )
-            db.add(attempt)
-            
-            # Calculate points
-            points = int(score * 0.1)  # 10 points for perfect score
-            
-            # Update progress
-            progress.cleared += 1
+            # Update progress based on answer correctness
             if is_correct:
-                progress.xp += points
-                progress.streak += 1
-            else:
-                progress.streak = 0
+                # Move to next chunk (since we only have 1 question per chunk)
+                progress.cleared += 1
+                progress.current_chunk_question = 0
             
             db.commit()
+            
+            # Get hint for incorrect answers
+            hint = ""
+            if not is_correct and 'hint' in current_question:
+                hint = current_question['hint']
             
             # Get performance analysis
             performance_analysis = analyze_user_performance(1, pdf_id, db)
             
             return jsonify({
                 'correct': is_correct,
-                'score': score,
-                'xp': progress.xp,
-                'streak': progress.streak,
-                'current': progress.cleared,
                 'explanation': explanation,
-                'time_taken': time_taken,
-                'performance_analysis': performance_analysis
+                'hint': hint,
+                'new_progress': progress.cleared,
+                'total_chunks': len(chunks)
             })
             
         finally:
@@ -619,32 +886,68 @@ def create_app():
         finally:
             db.close()
     
-    @app.route('/api/download/<int:pdf_id>')
-    def download_pdf(pdf_id):
-        """Download the original PDF file"""
+    @app.route("/api/completion-message/<int:pdf_id>", methods=["GET"])
+    def get_completion_message(pdf_id):
+        """Generate completion summary with statistics"""
         db = SessionLocal()
         try:
-            doc = db.query(Doc).filter(Doc.id == pdf_id).first()
-            if not doc:
-                return jsonify({"error": "Document not found"}), 404
+            # Get user's attempts for this document
+            attempts = db.query(Attempt).join(Task).filter(
+                Task.doc_id == pdf_id,
+                Attempt.user_id == 1
+            ).all()
             
-            # Check if file exists
-            file_path = os.path.join(app.config['UPLOAD_FOLDER'], doc.storage_path)
-            if not os.path.exists(file_path):
-                return jsonify({"error": "File not found on server"}), 404
+            if not attempts:
+                return jsonify({
+                    'message': 'Great job completing the document!',
+                    'stats': {
+                        'correct': 0,
+                        'wrong': 0,
+                        'skipped': 0,
+                        'average_time': 0
+                    }
+                })
             
-            # Extract filename from storage path for download
-            filename = os.path.basename(doc.storage_path)
-            return send_file(file_path, as_attachment=True, download_name=filename)
-        except Exception as e:
-            print(f"Error downloading PDF: {e}")
-            return jsonify({"error": str(e)}), 500
+            # Calculate statistics
+            correct_count = sum(1 for attempt in attempts if attempt.correct)
+            wrong_count = sum(1 for attempt in attempts if not attempt.correct and not attempt.is_skip)
+            skipped_count = sum(1 for attempt in attempts if attempt.is_skip)
+            
+            # Calculate average time (excluding skips with 0 time)
+            times = [attempt.time_ms for attempt in attempts if attempt.time_ms > 0]
+            average_time = sum(times) / len(times) if times else 0
+            average_time_seconds = round(average_time / 1000, 1)  # Convert to seconds
+            
+            total_questions = len(attempts)
+            accuracy = (correct_count / total_questions * 100) if total_questions > 0 else 0
+            
+            # Generate simple completion message
+            message = f"🎉 Congratulations! You completed the document with {accuracy:.0f}% accuracy. "
+            
+            if correct_count > wrong_count:
+                message += "Excellent work on your understanding!"
+            elif correct_count == wrong_count:
+                message += "Good effort! Keep practicing to improve."
+            else:
+                message += "Great attempt! Review the material to strengthen your knowledge."
+            
+            return jsonify({
+                'message': message,
+                'stats': {
+                    'correct': correct_count,
+                    'wrong': wrong_count,
+                    'skipped': skipped_count,
+                    'average_time': average_time_seconds
+                }
+            })
+                
         finally:
             db.close()
+    
 
     @app.route('/api/query/<int:pdf_id>', methods=['POST'])
     def query_document(pdf_id):
-        """Query the document with LLM assistance"""
+        """Enhanced document querying with advanced LLM assistance"""
         db = SessionLocal()
         try:
             data = request.get_json()
@@ -659,45 +962,64 @@ def create_app():
                 return jsonify({"error": "Document not found"}), 404
             
             # Get document text from chunks
-            chunks = db.query(Chunk).filter(Chunk.doc_id == pdf_id).all()
+            chunks = db.query(Chunk).filter(Chunk.doc_id == pdf_id).order_by(Chunk.idx).all()
             document_text = "\n\n".join([chunk.text for chunk in chunks])
             
-            # Generate answer using LLM
+            # Find most relevant chunks for the query
+            relevant_chunks = find_relevant_chunks(query, chunks)
+            relevant_text = "\n\n".join([chunk.text for chunk in relevant_chunks])
+            
+            # Generate enhanced answer using LLM
             client = get_openai_client()
             if client:
                 try:
                     prompt = f"""
-                    Based on the following document, answer the user's question concisely and accurately.
+                    You are an intelligent document assistant. Answer the user's question based on the provided document content.
                     
-                    Document content:
-                    {document_text[:4000]}
+                    DOCUMENT CONTENT:
+                    {relevant_text[:6000]}
                     
-                    User question: {query}
+                    USER QUESTION: {query}
                     
-                    Instructions:
-                    - Provide a short, direct answer (2-3 sentences maximum)
-                    - Only use information from the document
-                    - If the answer isn't in the document, say "This information is not available in the document"
-                    - Be specific and cite relevant details when possible
+                    INSTRUCTIONS:
+                    - Provide a comprehensive yet concise answer (3-5 sentences)
+                    - Use ONLY information from the document provided
+                    - If the information isn't in the document, clearly state this
+                    - Include specific details, numbers, or examples when available
+                    - Structure your answer logically and clearly
+                    - If the question has multiple parts, address each part
+                    - Use natural, conversational language
+                    
+                    RESPONSE FORMAT:
+                    - Start with a direct answer to the main question
+                    - Follow with supporting details from the document
+                    - End with any relevant context or implications if appropriate
                     """
                     
                     response = client.chat.completions.create(
                         model="gpt-3.5-turbo",
                         messages=[{"role": "user", "content": prompt}],
-                        temperature=0.3,
-                        max_tokens=150
+                        temperature=0.2,
+                        max_tokens=300
                     )
                     
                     answer = response.choices[0].message.content.strip()
-                    return jsonify({"answer": answer})
+                    
+                    # Add metadata about the response
+                    return jsonify({
+                        "answer": answer,
+                        "source_chunks": len(relevant_chunks),
+                        "document_title": doc.title,
+                        "confidence": "high" if len(relevant_chunks) >= 2 else "medium"
+                    })
                     
                 except Exception as e:
                     print(f"Error with OpenAI: {e}")
-                    # Fallback to simple text search
-                    return generate_fallback_answer(query, document_text)
+                    # Fallback to enhanced text search
+                    return generate_enhanced_fallback_answer(query, document_text, doc.title)
             else:
-                # Fallback when OpenAI is not available
-                return generate_fallback_answer(query, document_text)
+                # Enhanced fallback when OpenAI is not available
+                return generate_enhanced_fallback_answer(query, document_text, doc.title)
                 
         except Exception as e:
             print(f"Error querying document: {e}")

@@ -23,14 +23,24 @@ export class ApiService {
     return data;
   }
 
-  static async submitAnswer(pdfId: string, payload: any) {
+  static async submitAnswer(
+    pdfId: string,
+    answer: any,
+    timeMs: number,
+    isSkip: boolean = false
+  ) {
     const response = await fetch(`${API_BASE_URL}/api/hurdle/${pdfId}`, {
       method: "POST",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify(payload),
+      body: JSON.stringify({
+        answer: answer,
+        time_ms: timeMs,
+        skip: isSkip,
+      }),
     });
     
     const data = await response.json();
+    if (data.error) throw new Error(data.error);
     return data;
   }
 
@@ -66,7 +76,10 @@ export class ApiService {
     return data;
   }
 
-  static getDownloadUrl(pdfId: string) {
-    return `${API_BASE_URL}/api/download/${pdfId}`;
+  static async getCompletionMessage(pdfId: string) {
+    const response = await fetch(`${API_BASE_URL}/api/completion-message/${pdfId}`);
+    const data = await response.json();
+    return data;
   }
+
 }

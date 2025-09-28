@@ -27,7 +27,20 @@ export const useQuery = () => {
     setQueryLoading(true);
     try {
       const data = await ApiService.queryDocument(pdfId, query);
-      setQueryResponse(data.answer);
+      // Handle enhanced response format
+      if (data.answer) {
+        let response = data.answer;
+        
+        // Add metadata if available
+        if (data.confidence && data.source_chunks) {
+          const confidenceEmoji = data.confidence === 'high' ? '🎯' : data.confidence === 'medium' ? '📊' : '💭';
+          response += `\n\n${confidenceEmoji} Based on ${data.source_chunks} relevant section${data.source_chunks !== 1 ? 's' : ''} from the document.`;
+        }
+        
+        setQueryResponse(response);
+      } else {
+        setQueryResponse(data.answer || "No response received.");
+      }
     } catch (err: any) {
       setQueryResponse(`Error: ${err.message}`);
     } finally {

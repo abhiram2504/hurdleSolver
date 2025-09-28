@@ -9,8 +9,9 @@ python-dotenv==1.0.1
 # PDF Processing
 PyPDF2==3.0.1
 
-# OpenAI
-openai==1.35.0
+# OpenAI (with compatible httpx version)
+openai==1.30.0
+httpx==0.24.1
 
 # Basic text processing
 nltk==3.9.1

@@ -32,7 +32,7 @@ export const useUIState = () => {
     setUIState(prev => ({ ...prev, showPerformanceModal }));
   }, []);
 
-  const setPerformanceData = useCallback((performanceData: PerformanceData | null) => {
+  const setPerformanceData = useCallback((performanceData: PerformanceData | string | null) => {
     setUIState(prev => ({ ...prev, performanceData }));
   }, []);
 

@@ -2,8 +2,6 @@ import { useState, useCallback } from 'react';
 import type { GameState, Progress, Hurdle } from '../types';
 
 const initialProgress: Progress = {
-  xp: 0,
-  streak: 0,
   current: 0,
 };
 

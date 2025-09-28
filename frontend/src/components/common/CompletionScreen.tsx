@@ -4,13 +4,13 @@ import "./CompletionScreen.css";
 
 interface CompletionScreenProps {
   progress: Progress;
-  onShowPerformance: () => void;
+  onShowImprovements: () => void;
   onRestart: () => void;
 }
 
 export const CompletionScreen: React.FC<CompletionScreenProps> = ({
   progress,
-  onShowPerformance,
+  onShowImprovements,
   onRestart,
 }) => {
   return (
@@ -23,18 +23,14 @@ export const CompletionScreen: React.FC<CompletionScreenProps> = ({
 
         <div className="completion-stats">
           <div className="stat-item">
-            <div className="stat-value">{progress.xp}</div>
-            <div className="stat-label">XP Earned</div>
-          </div>
-          <div className="stat-item">
-            <div className="stat-value">{progress.streak}</div>
-            <div className="stat-label">Final Streak</div>
+            <div className="stat-value">{progress.current}</div>
+            <div className="stat-label">Questions Completed</div>
           </div>
         </div>
 
         <div className="completion-actions">
-          <button onClick={onShowPerformance} className="performance-btn">
-            📊 View Performance
+          <button onClick={onShowImprovements} className="performance-btn">
+            📊 View Summary
           </button>
           <button onClick={onRestart} className="restart-btn">
             🔄 Try Another Document

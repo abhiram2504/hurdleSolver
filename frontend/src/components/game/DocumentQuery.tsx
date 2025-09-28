@@ -1,6 +1,5 @@
 import React from "react";
 import type { QueryState } from "../../types";
-import { ApiService } from "../../services/api";
 import "./DocumentQuery.css";
 
 interface DocumentQueryProps {
@@ -27,25 +26,21 @@ export const DocumentQuery: React.FC<DocumentQueryProps> = ({
     <div className="document-query">
       <div className="document-header">
         <h3>📄 {documentTitle || "Document"}</h3>
-        <a
-          href={ApiService.getDownloadUrl(pdfId)}
-          className="download-link"
-          target="_blank"
-          rel="noopener noreferrer"
-        >
-          📥 Download PDF
-        </a>
       </div>
 
       <div className="query-section">
-        <h4>💬 Ask about the document</h4>
+        <h4>🤖 AI Document Assistant</h4>
+        <p className="query-description">
+          Ask me anything about this document and I'll provide detailed answers
+          based on the content.
+        </p>
         <form onSubmit={handleSubmit} className="query-form">
           <textarea
             value={queryState.query}
             onChange={(e) => onQueryChange(e.target.value)}
-            placeholder="Ask a question about the document content..."
+            placeholder="Examples: 'What are the main topics?', 'Summarize the key points', 'What does it say about...?'"
             className="query-input"
-            rows={3}
+            rows={4}
             disabled={queryState.queryLoading}
           />
           <button
@@ -53,7 +48,7 @@ export const DocumentQuery: React.FC<DocumentQueryProps> = ({
             className="query-btn"
             disabled={queryState.queryLoading || !queryState.query.trim()}
           >
-            {queryState.queryLoading ? "🤔 Thinking..." : "🔍 Ask"}
+            {queryState.queryLoading ? "🧠 Analyzing..." : "🚀 Get Answer"}
           </button>
         </form>
 

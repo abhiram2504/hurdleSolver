@@ -1,9 +1,83 @@
-/* Question Card Styles */
+/* Question Card Styles - Scarlet & Gray Theme */
 .question-card {
-  background: white;
+  background: linear-gradient(135deg, #ffffff 0%, #f8fafc 100%);
+  border-radius: 20px;
+  padding: 32px;
+  box-shadow: 0 20px 50px rgba(15, 23, 42, 0.08),
+    0 8px 25px rgba(220, 38, 38, 0.05), inset 0 1px 0 rgba(255, 255, 255, 0.6);
+  border: 2px solid rgba(220, 38, 38, 0.1);
+  position: relative;
+  overflow: hidden;
+}
+
+.question-card::before {
+  content: "";
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  height: 4px;
+  background: linear-gradient(90deg, #dc2626, #ef4444, #dc2626);
+  background-size: 200% 100%;
+  animation: gradientFlow 3s ease-in-out infinite;
+}
+
+@keyframes gradientFlow {
+  0%,
+  100% {
+    background-position: 0% 0%;
+  }
+  50% {
+    background-position: 100% 0%;
+  }
+}
+
+/* Avatar Section */
+.avatar-section {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  margin-bottom: 20px;
+  padding: 16px;
+  background: linear-gradient(135deg, #f8fafc, #f1f5f9);
   border-radius: 16px;
-  padding: 28px;
-  box-shadow: 0 16px 40px rgba(15, 23, 42, 0.12);
+  border: 2px solid rgba(220, 38, 38, 0.1);
+}
+
+.avatar-hint {
+  margin-top: 12px;
+  padding: 12px 16px;
+  background: linear-gradient(135deg, #fef3c7, #fde68a);
+  border-radius: 12px;
+  border: 2px solid #f59e0b;
+  max-width: 300px;
+  text-align: center;
+}
+
+.avatar-hint p {
+  margin: 0;
+  font-size: 0.9em;
+  color: #92400e;
+}
+
+/* Detailed Progress */
+.detailed-progress {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+  gap: 4px;
+}
+
+.chunk-progress {
+  font-size: 0.9em;
+  font-weight: 600;
+  color: #dc2626;
+}
+
+.question-progress {
+  font-size: 0.8em;
+  color: #6b7280;
+  font-weight: 500;
 }
 
 .question-meta {
@@ -16,12 +90,18 @@
 }
 
 .timer {
-  background: rgba(56, 189, 248, 0.15);
-  border: 1px solid rgba(56, 189, 248, 0.35);
-  padding: 6px 14px;
+  background: linear-gradient(
+    135deg,
+    rgba(220, 38, 38, 0.1),
+    rgba(220, 38, 38, 0.05)
+  );
+  border: 2px solid rgba(220, 38, 38, 0.2);
+  padding: 8px 16px;
   border-radius: 999px;
-  color: #0369a1;
-  font-weight: 600;
+  color: #dc2626;
+  font-weight: 700;
+  box-shadow: 0 4px 12px rgba(220, 38, 38, 0.1);
+  backdrop-filter: blur(10px);
 }
 
 .progress-indicator {
@@ -33,14 +113,27 @@
 }
 
 .question-text {
-  font-size: 1.2em;
-  font-weight: 600;
-  color: #2c3e50;
-  margin: 16px 0;
-  padding: 12px;
-  background: linear-gradient(135deg, #f8f9fa, #e9ecef);
-  border-radius: 8px;
-  border-left: 4px solid #3498db;
+  font-size: 1.3em;
+  font-weight: 700;
+  color: #374151;
+  margin: 20px 0;
+  padding: 20px;
+  background: linear-gradient(135deg, #f8fafc, #f1f5f9);
+  border-radius: 12px;
+  border-left: 6px solid #dc2626;
+  box-shadow: 0 4px 16px rgba(220, 38, 38, 0.08);
+  position: relative;
+}
+
+.question-text::before {
+  content: "";
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 6px;
+  height: 100%;
+  background: linear-gradient(180deg, #dc2626, #ef4444, #dc2626);
+  border-radius: 0 0 0 12px;
 }
 
 .options-container {
@@ -74,11 +167,54 @@
 .option-radio {
   margin-right: 12px;
   transform: scale(1.2);
+  color: #000000;
 }
 
 .option-text {
   flex: 1;
   font-size: 1em;
+  color: #000000;
+}
+
+.option-indicator {
+  margin-left: 8px;
+  font-size: 1.2em;
+  font-weight: bold;
+}
+
+/* Option feedback states */
+.option-correct-selected {
+  background: linear-gradient(135deg, #d1fae5, #a7f3d0) !important;
+  border-color: #10b981 !important;
+  transform: scale(1.02);
+  box-shadow: 0 4px 12px rgba(16, 185, 129, 0.3);
+}
+
+.option-incorrect-selected {
+  background: linear-gradient(135deg, #fee2e2, #fecaca) !important;
+  border-color: #ef4444 !important;
+  transform: scale(1.02);
+  box-shadow: 0 4px 12px rgba(239, 68, 68, 0.3);
+  animation: shake 0.5s ease-in-out;
+}
+
+.option-correct-answer {
+  background: linear-gradient(135deg, #dbeafe, #bfdbfe) !important;
+  border-color: #3b82f6 !important;
+  box-shadow: 0 4px 12px rgba(59, 130, 246, 0.3);
+}
+
+@keyframes shake {
+  0%,
+  100% {
+    transform: translateX(0) scale(1.02);
+  }
+  25% {
+    transform: translateX(-5px) scale(1.02);
+  }
+  75% {
+    transform: translateX(5px) scale(1.02);
+  }
 }
 
 .option-text strong {
@@ -101,7 +237,7 @@
   width: 100%;
   padding: 12px 16px;
   font-size: 16px;
-  border: 2px solid #ddd;
+  border: 2px solid #000000;
   border-radius: 8px;
   transition: border-color 0.3s ease;
   box-sizing: border-box;
@@ -120,13 +256,13 @@
 }
 
 .submit-btn {
-  background: linear-gradient(135deg, #3498db, #2980b9);
+  background: linear-gradient(135deg, #dc2626, #991b1b);
   color: white;
   border: none;
-  padding: 12px 24px;
+  padding: 16px 28px;
   font-size: 16px;
-  font-weight: 600;
-  border-radius: 8px;
+  font-weight: 700;
+  border-radius: 12px;
   cursor: pointer;
   transition: all 0.3s ease;
   flex: 1;
@@ -134,37 +270,67 @@
   align-items: center;
   justify-content: center;
   gap: 8px;
+  box-shadow: 0 8px 25px rgba(220, 38, 38, 0.25), 0 2px 8px rgba(0, 0, 0, 0.1);
+  position: relative;
+  overflow: hidden;
+}
+
+.submit-btn::before {
+  content: "";
+  position: absolute;
+  top: 0;
+  left: -100%;
+  width: 100%;
+  height: 100%;
+  background: linear-gradient(
+    90deg,
+    transparent,
+    rgba(255, 255, 255, 0.2),
+    transparent
+  );
+  transition: left 0.5s ease;
 }
 
 .submit-btn:hover:not(:disabled) {
-  background: linear-gradient(135deg, #2980b9, #1f5f99);
-  transform: translateY(-2px);
-  box-shadow: 0 4px 12px rgba(52, 152, 219, 0.3);
+  background: linear-gradient(135deg, #b91c1c, #7f1d1d);
+  transform: translateY(-3px);
+  box-shadow: 0 12px 35px rgba(220, 38, 38, 0.35),
+    0 4px 12px rgba(0, 0, 0, 0.15);
+}
+
+.submit-btn:hover:not(:disabled)::before {
+  left: 100%;
 }
 
 .submit-btn:disabled {
-  background: #95a5a6;
+  background: linear-gradient(135deg, #9ca3af, #6b7280);
   cursor: not-allowed;
   transform: none;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
 }
 
 .skip-btn {
-  background: linear-gradient(135deg, #95a5a6, #7f8c8d);
-  color: white;
-  border: none;
-  padding: 12px 20px;
+  background: linear-gradient(135deg, #f8fafc, #f1f5f9);
+  color: #6b7280;
+  border: 2px solid #d1d5db;
+  padding: 14px 24px;
   font-size: 14px;
   font-weight: 600;
-  border-radius: 8px;
+  border-radius: 12px;
   cursor: pointer;
   transition: all 0.3s ease;
   display: flex;
   align-items: center;
   gap: 6px;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.05);
 }
 
 .skip-btn:hover:not(:disabled) {
-  background: linear-gradient(135deg, #7f8c8d, #6c7b7f);
+  background: linear-gradient(135deg, #e5e7eb, #d1d5db);
+  border-color: #9ca3af;
+  color: #4b5563;
+  transform: translateY(-1px);
+  box-shadow: 0 6px 16px rgba(0, 0, 0, 0.1);
   transform: translateY(-1px);
   box-shadow: 0 2px 8px rgba(127, 140, 141, 0.3);
 }

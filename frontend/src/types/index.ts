@@ -6,6 +6,7 @@ export interface Task {
   options?: string[];
   correct?: number;
   explanation?: string;
+  hint?: string;
   questions?: Array<{
     question: string;
     options: string[];
@@ -14,6 +15,13 @@ export interface Task {
   }>;
   title?: string;
   difficulty?: number;
+}
+
+export interface QuestionProgress {
+  current_question: number;
+  total_questions: number;
+  chunk_number: number;
+  total_chunks: number;
 }
 
 export interface Hurdle {
@@ -26,11 +34,10 @@ export interface Hurdle {
   key_concepts?: string[];
   document_text?: string;
   document_title?: string;
+  question_progress?: QuestionProgress;
 }
 
 export interface Progress {
-  xp: number;
-  streak: number;
   current: number;
 }
 
@@ -39,6 +46,7 @@ export interface Feedback {
   correct: boolean;
   score: number;
   explanation: string;
+  hint?: string;
 }
 
 export interface PerformanceData {
@@ -65,13 +73,23 @@ export interface GameState {
   questionStartTime: number | null;
 }
 
+export interface CompletionData {
+  message: string;
+  stats: {
+    correct: number;
+    wrong: number;
+    skipped: number;
+    average_time: number;
+  };
+}
+
 export interface UIState {
   loading: boolean;
   error: string | null;
   showHomeScreen: boolean;
   feedback: Feedback | null;
   showPerformanceModal: boolean;
-  performanceData: PerformanceData | null;
+  performanceData: PerformanceData | CompletionData | string | null;
   performanceLoading: boolean;
 }
 

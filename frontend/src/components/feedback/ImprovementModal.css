@@ -1,0 +1,266 @@
+/* Improvement Modal Styles */
+.improvement-modal {
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  background: rgba(0, 0, 0, 0.7);
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  z-index: 1000;
+}
+
+.improvement-content {
+  background: white;
+  border-radius: 16px;
+  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.3);
+  max-width: 600px;
+  width: 90%;
+  max-height: 80vh;
+  overflow-y: auto;
+}
+
+.improvement-header {
+  padding: 24px 32px;
+  border-bottom: 1px solid #e2e8f0;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  color: white;
+  border-radius: 16px 16px 0 0;
+}
+
+.improvement-header h2 {
+  margin: 0;
+  font-size: 1.8em;
+}
+
+.close-btn {
+  background: none;
+  border: none;
+  font-size: 1.5em;
+  cursor: pointer;
+  color: white;
+  padding: 4px 8px;
+  border-radius: 4px;
+  transition: background-color 0.2s;
+}
+
+.close-btn:hover {
+  background: rgba(255, 255, 255, 0.2);
+}
+
+.loading-section {
+  padding: 40px;
+  text-align: center;
+}
+
+.loading-section .spinner {
+  width: 40px;
+  height: 40px;
+  border: 4px solid #e2e8f0;
+  border-top: 4px solid #667eea;
+  border-radius: 50%;
+  animation: spin 1s linear infinite;
+  margin: 0 auto 16px;
+}
+
+.improvement-details {
+  padding: 32px;
+}
+
+.suggestions-section {
+  margin-bottom: 32px;
+}
+
+.suggestions-section h3 {
+  margin: 0 0 20px 0;
+  color: #1e293b;
+  font-size: 1.4em;
+}
+
+.suggestions-text {
+  background: linear-gradient(135deg, #f8fafc 0%, #e2e8f0 100%);
+  padding: 24px;
+  border-radius: 12px;
+  border-left: 4px solid #667eea;
+  line-height: 1.7;
+}
+
+.suggestions-text p {
+  margin: 0 0 16px 0;
+  color: #374151;
+}
+
+.suggestions-text p:last-child {
+  margin-bottom: 0;
+}
+
+.improvement-actions {
+  display: flex;
+  gap: 12px;
+  justify-content: flex-end;
+  border-top: 1px solid #e2e8f0;
+  padding-top: 24px;
+}
+
+.restart-btn {
+  background: linear-gradient(135deg, #3b82f6 0%, #1d4ed8 100%);
+  color: white;
+  border: none;
+  padding: 12px 24px;
+  border-radius: 8px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.restart-btn:hover {
+  transform: translateY(-1px);
+  box-shadow: 0 4px 12px rgba(59, 130, 246, 0.3);
+}
+
+.close-improvement-btn {
+  background: linear-gradient(135deg, #10b981 0%, #059669 100%);
+  color: white;
+  border: none;
+  padding: 12px 24px;
+  border-radius: 8px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.close-improvement-btn:hover {
+  transform: translateY(-1px);
+  box-shadow: 0 4px 12px rgba(16, 185, 129, 0.3);
+}
+
+.error-section {
+  padding: 40px;
+  text-align: center;
+}
+
+.error-section p {
+  color: #ef4444;
+  margin-bottom: 20px;
+}
+
+@keyframes spin {
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+/* Success icon animation */
+@keyframes bounce {
+  0%,
+  20%,
+  60%,
+  100% {
+    transform: translateY(0);
+  }
+  40% {
+    transform: translateY(-10px);
+  }
+  80% {
+    transform: translateY(-5px);
+  }
+}
+
+.improvement-header h2 {
+  animation: bounce 2s ease-in-out;
+}
+
+/* Responsive Design */
+@media (max-width: 768px) {
+  .improvement-content {
+    margin: 20px;
+    width: calc(100% - 40px);
+  }
+
+  .improvement-header {
+    padding: 20px;
+  }
+
+  .improvement-details {
+    padding: 20px;
+  }
+
+  .suggestions-text {
+    padding: 20px;
+  }
+
+  .improvement-actions {
+    flex-direction: column;
+  }
+}
+
+/* Stats Section */
+.stats-section {
+  margin-top: 24px;
+}
+
+.stats-section h4 {
+  margin: 0 0 16px 0;
+  color: #374151;
+  font-size: 1.1em;
+}
+
+.stats-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(120px, 1fr));
+  gap: 16px;
+}
+
+.stat-item {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  padding: 16px;
+  border-radius: 12px;
+  background: #f9fafb;
+  border: 2px solid #e5e7eb;
+  transition: all 0.2s ease;
+}
+
+.stat-item.correct {
+  border-color: #10b981;
+  background: #ecfdf5;
+}
+
+.stat-item.wrong {
+  border-color: #ef4444;
+  background: #fef2f2;
+}
+
+.stat-item.skipped {
+  border-color: #f59e0b;
+  background: #fffbeb;
+}
+
+.stat-item.time {
+  border-color: #3b82f6;
+  background: #eff6ff;
+}
+
+.stat-icon {
+  font-size: 1.5em;
+  margin-bottom: 8px;
+}
+
+.stat-label {
+  font-size: 0.9em;
+  color: #6b7280;
+  margin-bottom: 4px;
+  font-weight: 500;
+}
+
+.stat-value {
+  font-size: 1.4em;
+  font-weight: 700;
+  color: #111827;
+}

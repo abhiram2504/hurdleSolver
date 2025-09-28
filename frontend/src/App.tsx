@@ -1,17 +1,14 @@
+import { useState } from "react";
 import "./App.css";
-import "./ProgressBar.css";
 
 // Components
-import ProgressBar from "./ProgressBar";
+import { StoryProgress } from "./components/progress/StoryProgress";
+import { BuckeyeAvatar } from "./components/avatar/BuckeyeAvatar";
 import HomeScreen3D from "./HomeScreen3D";
 import { UploadSection } from "./components/upload/UploadSection";
 import { QuestionCard } from "./components/game/QuestionCard";
 import { DocumentQuery } from "./components/game/DocumentQuery";
-import {
-  FeedbackModal,
-  InlineFeedback,
-} from "./components/feedback/FeedbackModal";
-import { PerformanceModal } from "./components/feedback/PerformanceModal";
+import { ImprovementModal } from "./components/feedback/ImprovementModal";
 import { ErrorMessage } from "./components/common/ErrorMessage";
 import { LoadingSpinner } from "./components/common/LoadingSpinner";
 import { CompletionScreen } from "./components/common/CompletionScreen";
@@ -51,6 +48,13 @@ function App() {
 
   const { queryState, setQuery, submitQuery, resetQuery } = useQuery();
 
+  // Local feedback state for inline display
+  const [inlineFeedback, setInlineFeedback] = useState<{
+    correct: boolean;
+    explanation: string;
+    hint?: string;
+  } | null>(null);
+
   // Handle home screen upload click
   const handleHomeUploadClick = () => {
     setShowHomeScreen(false);
@@ -67,7 +71,7 @@ function App() {
   const handleUploadSuccess = async (pdfId: string, numChunks: number) => {
     setPdfId(pdfId);
     setNumChunks(numChunks);
-    setProgress({ xp: 0, streak: 0, current: 0 });
+    setProgress({ current: 0 });
     setDone(false);
     await fetchHurdle(pdfId);
   };
@@ -94,12 +98,15 @@ function App() {
     }
   };
 
+  // Fetch next hurdle using current PDF ID
+  const fetchNextHurdle = async () => {
+    if (gameState.pdfId) {
+      await fetchHurdle(gameState.pdfId);
+    }
+  };
+
   // Handle game completion
-  const handleGameComplete = async (
-    correct: boolean,
-    score: number,
-    userAnswer?: any
-  ) => {
+  const handleGameComplete = async (userAnswer?: any) => {
     if (!gameState.pdfId || !gameState.hurdle) return;
 
     setLoading(true);
@@ -111,29 +118,44 @@ function App() {
       : 0;
 
     try {
-      const data = await ApiService.submitAnswer(gameState.pdfId, {
-        answer: userAnswer,
-        task_type: gameState.hurdle.task_type,
-        correct,
-        score,
-        time_ms: timeMs,
+      const data = await ApiService.submitAnswer(
+        gameState.pdfId,
+        userAnswer,
+        timeMs,
+        false
+      );
+
+      // Set inline feedback for both correct and incorrect answers
+      setInlineFeedback({
+        correct: data.correct,
+        explanation: data.explanation,
+        hint: data.hint,
+      });
+
+      // Update progress
+      setProgress({
+        current: data.new_progress,
       });
 
       if (!data.correct) {
-        // Incorrect answer: show inline feedback and move to next question
-        setFeedback({
-          show: true,
-          correct: false,
-          score: data.score,
-          explanation: "",
-        });
-        setProgress(data);
+        // Incorrect answer: stay on same question, show feedback
         stopTimer();
-        fetchHurdle(gameState.pdfId);
+        // Clear feedback after 5 seconds for incorrect answers
+        setTimeout(() => {
+          setInlineFeedback(null);
+          startTimer(); // Restart timer for retry
+        }, 5000);
         return;
       }
 
-      // Correct answer: show modal feedback
+      // Correct answer: proceed to next question after brief feedback
+      stopTimer();
+      setTimeout(async () => {
+        setInlineFeedback(null);
+        await fetchNextHurdle();
+      }, 2000);
+
+      // Legacy feedback for modal (keeping for compatibility)
       setFeedback({
         show: true,
         correct: data.correct,
@@ -150,54 +172,16 @@ function App() {
     }
   };
 
-  // Handle skip question
-  const handleSkipQuestion = async () => {
-    if (!gameState.pdfId || !gameState.hurdle) return;
-
-    setLoading(true);
-    setError(null);
-
-    try {
-      const timeMs = gameState.questionStartTime
-        ? Date.now() - gameState.questionStartTime
-        : 0;
-      const data = await ApiService.skipQuestion(gameState.pdfId, timeMs);
-
-      setFeedback({
-        show: true,
-        correct: false,
-        score: 0,
-        explanation: data.explanation || "Question skipped.",
-      });
-
-      setProgress(data);
-      stopTimer();
-      fetchHurdle(gameState.pdfId);
-    } catch (err: any) {
-      setError(err.message);
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  // Continue to next hurdle after viewing feedback
-  const continueToNext = () => {
-    setFeedback(null);
-    if (gameState.pdfId) {
-      fetchHurdle(gameState.pdfId);
-    }
-  };
-
-  // Show performance analysis
-  const showPerformanceAnalysis = async () => {
+  // Show completion message
+  const showCompletionMessage = async () => {
     if (!gameState.pdfId) return;
 
     setShowPerformanceModal(true);
     setPerformanceLoading(true);
 
     try {
-      const data = await ApiService.getPerformance(gameState.pdfId);
-      setPerformanceData(data);
+      const data = await ApiService.getCompletionMessage(gameState.pdfId);
+      setPerformanceData(data); // Store the full response with message and stats
     } catch (err: any) {
       setError(err.message);
     } finally {
@@ -209,19 +193,65 @@ function App() {
   const handleQuestionSubmit = (answer: any) => {
     if (!gameState.hurdle) return;
 
-    if (gameState.hurdle.task.type === "choice") {
-      const isCorrect = answer === gameState.hurdle.task.correct;
-      const score = isCorrect ? 100 : 0;
-      handleGameComplete(isCorrect, score, answer);
-    } else if (gameState.hurdle.task.type === "cloze") {
-      // For cloze questions, we'll assume correct for now
-      // In a real implementation, you'd validate against expected answers
-      handleGameComplete(true, 100, answer);
+    handleGameComplete(answer);
+  };
+
+  // Handle question skip
+  const handleSkipQuestion = async () => {
+    if (!gameState.pdfId || !gameState.hurdle) return;
+
+    setLoading(true);
+    setError(null);
+
+    // Calculate time taken
+    const timeMs = gameState.questionStartTime
+      ? Date.now() - gameState.questionStartTime
+      : 0;
+
+    try {
+      const data = await ApiService.submitAnswer(
+        gameState.pdfId,
+        null,
+        timeMs,
+        true // is_skip = true
+      );
+
+      // Update progress
+      setProgress({
+        current: data.new_progress || data.current,
+      });
+
+      // Move to next question
+      stopTimer();
+      await fetchNextHurdle();
+    } catch (err: any) {
+      setError(err.message);
+    } finally {
+      setLoading(false);
     }
   };
 
   return (
-    <div className="App">
+    <div className="app-shell">
+      {/* Navbar with Buckeye Avatar */}
+      <nav className="app-navbar">
+        <div className="navbar-content">
+          <div className="navbar-brand">
+            <BuckeyeAvatar size="small" mood="happy" animate={true} />
+            <span>Hurdle Solver</span>
+          </div>
+          <div className="navbar-actions">
+            <button
+              className="navbar-btn"
+              onClick={resetToHome}
+              title="Go Home"
+            >
+              🏠 Home
+            </button>
+          </div>
+        </div>
+      </nav>
+
       <ErrorMessage error={uiState.error} onDismiss={() => setError(null)} />
 
       {uiState.showHomeScreen ? (
@@ -239,11 +269,14 @@ function App() {
 
       {gameState.pdfId && !gameState.done && (
         <>
-          <ProgressBar
-            xp={gameState.progress.xp}
-            streak={gameState.progress.streak}
-            currentHurdle={gameState.progress.current}
+          <StoryProgress
             totalHurdles={gameState.numChunks}
+            currentHurdle={gameState.progress.current}
+            completedHurdles={gameState.progress.current}
+            onNodeClick={(nodeId) => {
+              // Handle node click - could navigate to specific hurdle
+              console.log(`Clicked node ${nodeId}`);
+            }}
           />
 
           <div className="main-content">
@@ -254,9 +287,11 @@ function App() {
                   timer={gameState.timer}
                   progress={gameState.progress}
                   numChunks={gameState.numChunks}
+                  questionProgress={gameState.hurdle.question_progress}
                   onSubmit={handleQuestionSubmit}
                   onSkip={handleSkipQuestion}
                   loading={uiState.loading}
+                  feedback={inlineFeedback}
                 />
               )}
             </div>
@@ -275,26 +310,32 @@ function App() {
       {gameState.done && (
         <CompletionScreen
           progress={gameState.progress}
-          onShowPerformance={showPerformanceAnalysis}
+          onShowImprovements={showCompletionMessage}
           onRestart={resetToHome}
         />
       )}
 
-      {/* Feedback Components */}
-      {uiState.feedback && (
-        <>
-          <FeedbackModal
-            feedback={uiState.feedback}
-            onContinue={continueToNext}
-          />
-          <InlineFeedback feedback={uiState.feedback} />
-        </>
-      )}
+      {/* Feedback Components - Now handled inline in QuestionCard */}
 
-      {/* Performance Modal */}
-      <PerformanceModal
+      {/* Completion Summary Modal */}
+      <ImprovementModal
         show={uiState.showPerformanceModal}
-        performanceData={uiState.performanceData}
+        message={
+          uiState.performanceData &&
+          typeof uiState.performanceData === "object" &&
+          "message" in uiState.performanceData
+            ? uiState.performanceData.message
+            : typeof uiState.performanceData === "string"
+            ? uiState.performanceData
+            : null
+        }
+        stats={
+          uiState.performanceData &&
+          typeof uiState.performanceData === "object" &&
+          "stats" in uiState.performanceData
+            ? uiState.performanceData.stats
+            : null
+        }
         loading={uiState.performanceLoading}
         onClose={() => setShowPerformanceModal(false)}
         onRestart={resetToHome}

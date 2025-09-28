@@ -2,7 +2,7 @@
 .document-query {
   background: #f8f9fa;
   border-radius: 12px;
-  border: 2px solid #e9ecef;
+  border: 2px solid #000000;
   overflow: hidden;
   height: fit-content;
   max-height: 80vh;
@@ -11,13 +11,28 @@
 }
 
 .document-header {
-  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  background: linear-gradient(135deg, #dc2626 0%, #991b1b 100%);
   color: white;
-  padding: 16px 20px;
+  padding: 20px 24px;
   margin: 0;
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
+  text-align: center;
+  box-shadow: 0 4px 16px rgba(220, 38, 38, 0.2);
+  position: relative;
+}
+
+.document-header::before {
+  content: "";
+  position: absolute;
+  bottom: 0;
+  left: 0;
+  right: 0;
+  height: 2px;
+  background: linear-gradient(
+    90deg,
+    transparent,
+    rgba(255, 255, 255, 0.4),
+    transparent
+  );
 }
 
 .document-header h3 {
@@ -25,30 +40,21 @@
   font-size: 1.2em;
 }
 
-.download-link {
-  color: white;
-  text-decoration: none;
-  background: rgba(255, 255, 255, 0.2);
-  padding: 8px 16px;
-  border-radius: 8px;
-  font-size: 0.9em;
-  font-weight: 500;
-  transition: all 0.2s ease;
-}
-
-.download-link:hover {
-  background: rgba(255, 255, 255, 0.3);
-  transform: translateY(-1px);
-}
-
 .query-section {
   padding: 20px;
 }
 
 .query-section h4 {
-  margin: 0 0 16px 0;
+  margin: 0 0 8px 0;
   color: #374151;
   font-size: 1.1em;
+}
+
+.query-description {
+  color: #666;
+  font-size: 0.9em;
+  margin-bottom: 16px;
+  line-height: 1.4;
 }
 
 .query-form {
@@ -80,26 +86,52 @@
 }
 
 .query-btn {
-  background: linear-gradient(135deg, #3b82f6 0%, #1d4ed8 100%);
+  background: linear-gradient(135deg, #dc2626 0%, #991b1b 100%);
   color: white;
   border: none;
-  padding: 12px 24px;
-  border-radius: 8px;
-  font-weight: 600;
+  padding: 14px 28px;
+  border-radius: 12px;
+  font-weight: 700;
   cursor: pointer;
-  transition: all 0.2s ease;
+  transition: all 0.3s ease;
   align-self: flex-start;
+  box-shadow: 0 8px 25px rgba(220, 38, 38, 0.25), 0 2px 8px rgba(0, 0, 0, 0.1);
+  position: relative;
+  overflow: hidden;
+}
+
+.query-btn::before {
+  content: "";
+  position: absolute;
+  top: 0;
+  left: -100%;
+  width: 100%;
+  height: 100%;
+  background: linear-gradient(
+    90deg,
+    transparent,
+    rgba(255, 255, 255, 0.2),
+    transparent
+  );
+  transition: left 0.5s ease;
 }
 
 .query-btn:hover:not(:disabled) {
-  transform: translateY(-1px);
-  box-shadow: 0 4px 12px rgba(59, 130, 246, 0.3);
+  background: linear-gradient(135deg, #b91c1c, #7f1d1d);
+  transform: translateY(-2px);
+  box-shadow: 0 12px 35px rgba(220, 38, 38, 0.35),
+    0 4px 12px rgba(0, 0, 0, 0.15);
+}
+
+.query-btn:hover:not(:disabled)::before {
+  left: 100%;
 }
 
 .query-btn:disabled {
-  background: #9ca3af;
+  background: linear-gradient(135deg, #9ca3af, #6b7280);
   cursor: not-allowed;
   transform: none;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
 }
 
 .query-response {

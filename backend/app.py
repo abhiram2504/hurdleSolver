@@ -3,7 +3,7 @@ HurdleReader Backend - AI-Powered Educational Gamification
 """
 import os
 import json
-import fitz  # PyMuPDF
+import PyPDF2
 from dotenv import load_dotenv
 from flask import Flask, request, jsonify
 from flask_cors import CORS
@@ -12,20 +12,29 @@ from openai import OpenAI
 # Load environment variables
 load_dotenv()
 
-# Initialize OpenAI client
-openai_client = OpenAI(api_key=os.getenv("OPENAI_API_KEY"))
+# Initialize OpenAI client (will be set up later if API key is available)
+openai_client = None
+
+def get_openai_client():
+    """Initialize and return OpenAI client if API key is available"""
+    global openai_client
+    if openai_client is None:
+        api_key = os.getenv("OPENAI_API_KEY")
+        if api_key:
+            openai_client = OpenAI(api_key=api_key)
+    return openai_client
 
 # In-memory storage for MVP
 pdf_storage = {}
 current_pdf_id = 1
 
 def extract_pdf_text(file_path):
-    """Extract text from PDF using PyMuPDF"""
-    doc = fitz.open(file_path)
-    text = ""
-    for page in doc:
-        text += page.get_text()
-    doc.close()
+    """Extract text from PDF using PyPDF2"""
+    with open(file_path, 'rb') as file:
+        pdf_reader = PyPDF2.PdfReader(file)
+        text = ""
+        for page in pdf_reader.pages:
+            text += page.extract_text()
     return text
 
 def create_educational_chunks(text, num_chunks=5):
@@ -46,7 +55,10 @@ def create_educational_chunks(text, num_chunks=5):
     """
     
     try:
-        response = openai_client.chat.completions.create(
+        client = get_openai_client()
+        if not client:
+            raise Exception("OpenAI API key not configured")
+        response = client.chat.completions.create(
             model="gpt-3.5-turbo",
             messages=[{"role": "user", "content": prompt}],
             temperature=0.7
@@ -129,23 +141,37 @@ def generate_interactive_game(chunk_data, game_type):
         """
     elif game_type == "choice":
         prompt = f"""
-        Create a multiple choice question about this text.
+        Create a short multiple choice question about this text. 
         
         Text: {chunk}
         
-        Return JSON: {{"type": "choice", "question": "question text", "options": ["A", "B", "C", "D"], "correct": 0, "explanation": "why correct"}}
+        Requirements:
+        - Question must be ONE line only (max 15 words)
+        - Must have exactly 4 options (A, B, C, D)
+        - One correct answer
+        - Options should be short and clear
+        
+        Return JSON: {{"type": "choice", "question": "Question about an important topic", "options": ["Option A", "Option B", "Option C", "Option D"], "correct": 0, "explanation": "brief explanation"}}
         """
     else:  # cloze
         prompt = f"""
-        Create a cloze (fill-in-the-blank) exercise from this text.
+        Create a short fill-in-the-blank question from this text. Keep it to ONE LINE only.
         
         Text: {chunk}
         
-        Return JSON: {{"type": "cloze", "question": "text with _____ blanks", "answer": "correct word", "hint": "helpful hint"}}
+        Requirements:
+        - Question must be ONE line only (max 15 words)
+        - Use _____ for the blank
+        - Answer should be one or two words maximum
+        
+        Return JSON: {{"type": "cloze", "question": "Short sentence with _____ blank.", "answer": "correct word", "hint": "brief hint"}}
         """
     
     try:
-        response = openai_client.chat.completions.create(
+        client = get_openai_client()
+        if not client:
+            raise Exception("OpenAI API key not configured")
+        response = client.chat.completions.create(
             model="gpt-3.5-turbo",
             messages=[{"role": "user", "content": prompt}],
             temperature=0.7
@@ -182,7 +208,10 @@ def validate_answer_with_ai(user_answer, correct_answer, question, chunk_text):
     """
     
     try:
-        response = openai_client.chat.completions.create(
+        client = get_openai_client()
+        if not client:
+            raise Exception("OpenAI API key not configured")
+        response = client.chat.completions.create(
             model="gpt-3.5-turbo",
             messages=[{"role": "user", "content": prompt}],
             temperature=0.3
@@ -225,7 +254,10 @@ def generate_boss_battle(chunks_data):
     """
     
     try:
-        response = openai_client.chat.completions.create(
+        client = get_openai_client()
+        if not client:
+            raise Exception("OpenAI API key not configured")
+        response = client.chat.completions.create(
             model="gpt-3.5-turbo",
             messages=[{"role": "user", "content": prompt}],
             temperature=0.7
@@ -333,7 +365,7 @@ def create_app():
         
         # Regular hurdle
         chunk_data = chunks_data[current_idx]
-        game_types = ['matching', 'choice']  # Only matching and multiple choice
+        game_types = ['choice', 'cloze']  # Only multiple choice and fill-in-the-blank
         game_type = game_types[current_idx % len(game_types)]
         
         # Generate interactive game

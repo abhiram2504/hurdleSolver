@@ -1,0 +1,282 @@
+/* Progress Bar Styles */
+.progress-container {
+  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  border-radius: 16px;
+  padding: 24px;
+  margin: 24px 0;
+  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.1);
+  backdrop-filter: blur(10px);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  position: relative;
+  overflow: hidden;
+}
+
+.progress-container::before {
+  content: "";
+  position: absolute;
+  top: 0;
+  left: -100%;
+  width: 100%;
+  height: 100%;
+  background: linear-gradient(
+    90deg,
+    transparent,
+    rgba(255, 255, 255, 0.1),
+    transparent
+  );
+  animation: shine 3s infinite;
+}
+
+@keyframes shine {
+  0% {
+    left: -100%;
+  }
+  100% {
+    left: 100%;
+  }
+}
+
+/* Main Progress Bar */
+.progress-bar-wrapper {
+  margin-bottom: 20px;
+}
+
+.progress-bar-track {
+  width: 100%;
+  height: 12px;
+  background: rgba(255, 255, 255, 0.2);
+  border-radius: 6px;
+  overflow: hidden;
+  position: relative;
+  box-shadow: inset 0 2px 4px rgba(0, 0, 0, 0.2);
+}
+
+.progress-bar-fill {
+  height: 100%;
+  background: linear-gradient(90deg, #4caf50, #81c784, #4caf50);
+  background-size: 200% 100%;
+  border-radius: 6px;
+  transition: width 0.8s cubic-bezier(0.4, 0, 0.2, 1);
+  position: relative;
+  animation: gradientShift 2s ease-in-out infinite;
+  box-shadow: 0 2px 8px rgba(76, 175, 80, 0.4);
+}
+
+@keyframes gradientShift {
+  0%,
+  100% {
+    background-position: 0% 0%;
+  }
+  50% {
+    background-position: 100% 0%;
+  }
+}
+
+.progress-bar-glow {
+  position: absolute;
+  top: 0;
+  right: 0;
+  width: 20px;
+  height: 100%;
+  background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.6));
+  border-radius: 6px;
+  animation: pulse 1.5s ease-in-out infinite;
+}
+
+@keyframes pulse {
+  0%,
+  100% {
+    opacity: 0;
+  }
+  50% {
+    opacity: 1;
+  }
+}
+
+.progress-text {
+  text-align: center;
+  margin-top: 12px;
+  font-weight: 600;
+  color: white;
+  text-shadow: 0 2px 4px rgba(0, 0, 0, 0.3);
+}
+
+.complete-text {
+  font-size: 1.2em;
+  animation: bounce 1s ease-in-out infinite;
+}
+
+@keyframes bounce {
+  0%,
+  20%,
+  50%,
+  80%,
+  100% {
+    transform: translateY(0);
+  }
+  40% {
+    transform: translateY(-8px);
+  }
+  60% {
+    transform: translateY(-4px);
+  }
+}
+
+/* Stats Row */
+.stats-row {
+  display: flex;
+  justify-content: space-around;
+  align-items: center;
+  margin-top: 16px;
+  padding-top: 16px;
+  border-top: 1px solid rgba(255, 255, 255, 0.2);
+}
+
+.stat-item {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 4px;
+  color: white;
+  text-shadow: 0 2px 4px rgba(0, 0, 0, 0.3);
+}
+
+.stat-icon {
+  font-size: 1.5em;
+  animation: float 2s ease-in-out infinite;
+}
+
+@keyframes float {
+  0%,
+  100% {
+    transform: translateY(0);
+  }
+  50% {
+    transform: translateY(-4px);
+  }
+}
+
+.stat-label {
+  font-size: 0.8em;
+  font-weight: 500;
+  opacity: 0.9;
+}
+
+.stat-value {
+  font-size: 1.1em;
+  font-weight: 700;
+}
+
+/* Milestone Markers */
+.milestone-markers {
+  position: relative;
+  height: 30px;
+  margin-top: 16px;
+}
+
+.milestone {
+  position: absolute;
+  top: 50%;
+  transform: translate(-50%, -50%);
+  width: 24px;
+  height: 24px;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 12px;
+  background: rgba(255, 255, 255, 0.2);
+  border: 2px solid rgba(255, 255, 255, 0.3);
+  transition: all 0.3s ease;
+  cursor: pointer;
+}
+
+.milestone:hover {
+  transform: translate(-50%, -50%) scale(1.2);
+}
+
+.milestone.completed {
+  background: #4caf50;
+  border-color: #4caf50;
+  box-shadow: 0 0 12px rgba(76, 175, 80, 0.6);
+  animation: completedPulse 2s ease-in-out infinite;
+}
+
+@keyframes completedPulse {
+  0%,
+  100% {
+    box-shadow: 0 0 12px rgba(76, 175, 80, 0.6);
+  }
+  50% {
+    box-shadow: 0 0 20px rgba(76, 175, 80, 0.8);
+  }
+}
+
+.milestone.current {
+  background: #ff9800;
+  border-color: #ff9800;
+  box-shadow: 0 0 16px rgba(255, 152, 0, 0.8);
+  animation: currentBlink 1s ease-in-out infinite;
+}
+
+@keyframes currentBlink {
+  0%,
+  100% {
+    opacity: 1;
+  }
+  50% {
+    opacity: 0.7;
+  }
+}
+
+.milestone.boss {
+  width: 28px;
+  height: 28px;
+  background: linear-gradient(45deg, #ffd700, #ffeb3b);
+  border-color: #ffd700;
+  box-shadow: 0 0 20px rgba(255, 215, 0, 0.8);
+}
+
+.milestone.boss.completed {
+  animation: bossGlow 2s ease-in-out infinite;
+}
+
+@keyframes bossGlow {
+  0%,
+  100% {
+    box-shadow: 0 0 20px rgba(255, 215, 0, 0.8);
+    transform: translate(-50%, -50%) scale(1);
+  }
+  50% {
+    box-shadow: 0 0 30px rgba(255, 215, 0, 1);
+    transform: translate(-50%, -50%) scale(1.1);
+  }
+}
+
+/* Responsive Design */
+@media (max-width: 768px) {
+  .progress-container {
+    padding: 16px;
+    margin: 16px 0;
+  }
+
+  .stats-row {
+    flex-direction: row;
+    gap: 16px;
+  }
+
+  .stat-item {
+    flex: 1;
+  }
+
+  .milestone {
+    width: 20px;
+    height: 20px;
+    font-size: 10px;
+  }
+
+  .milestone.boss {
+    width: 24px;
+    height: 24px;
+  }
+}

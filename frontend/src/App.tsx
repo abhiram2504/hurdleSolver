@@ -1,20 +1,15 @@
 import { useState } from "react";
 import "./App.css";
-import "./InteractiveGames.css";
-import Roadmap3D from "./Roadmap3D";
+import "./ProgressBar.css";
+import ProgressBar from "./ProgressBar";
 import HomeScreen3D from "./HomeScreen3D";
-import { MatchingGame, TypingGame, HighlightGame } from "./InteractiveGames";
 
 interface Task {
   type: string;
   question?: string;
-  answer?: string;
-  hint?: string;
   options?: string[];
   correct?: number;
   explanation?: string;
-  instruction?: string;
-  correct_phrases?: string[];
   questions?: Array<{
     question: string;
     options: string[];
@@ -33,6 +28,8 @@ interface Hurdle {
   idx: number;
   difficulty?: number;
   key_concepts?: string[];
+  document_text?: string;
+  document_title?: string;
 }
 
 interface Progress {
@@ -60,9 +57,7 @@ function App() {
     show: boolean;
     correct: boolean;
     score: number;
-    feedback: string;
     explanation: string;
-    message: string;
   } | null>(null);
 
   // Handle home screen upload click
@@ -79,7 +74,7 @@ function App() {
     const formData = new FormData();
     formData.append("file", file);
     try {
-      const res = await fetch("http://localhost:5000/api/upload", {
+      const res = await fetch("http://localhost:5002/api/upload", {
         method: "POST",
         body: formData,
       });
@@ -102,7 +97,7 @@ function App() {
     setLoading(true);
     setError(null);
     try {
-      const res = await fetch(`http://localhost:5000/api/hurdle/${id}`);
+      const res = await fetch(`http://localhost:5002/api/hurdle/${id}`);
       const data = await res.json();
       if (data.done) {
         setDone(true);
@@ -124,7 +119,7 @@ function App() {
     setLoading(true);
     setError(null);
     try {
-      const res = await fetch(`http://localhost:5000/api/hurdle/${pdfId}`, {
+      const res = await fetch(`http://localhost:5002/api/hurdle/${pdfId}`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ correct: true, answer }),
@@ -150,7 +145,7 @@ function App() {
     setLoading(true);
     setError(null);
     try {
-      const res = await fetch(`http://localhost:5000/api/hurdle/${pdfId}`, {
+      const res = await fetch(`http://localhost:5002/api/hurdle/${pdfId}`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
@@ -167,9 +162,39 @@ function App() {
         show: true,
         correct: data.correct,
         score: data.score,
-        feedback: data.feedback,
-        explanation: data.explanation,
-        message: data.message,
+        explanation: data.explanation || "",
+      });
+
+      setProgress(data);
+      setAnswer("");
+    } catch (err: any) {
+      setError(err.message);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  // Handle skip question
+  const handleSkipQuestion = async () => {
+    if (!pdfId || !hurdle) return;
+    setLoading(true);
+    setError(null);
+    try {
+      const res = await fetch(`http://localhost:5002/api/hurdle/${pdfId}`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          skip: true,
+        }),
+      });
+      const data = await res.json();
+
+      // Show feedback for skip
+      setFeedback({
+        show: true,
+        correct: false,
+        score: 0,
+        explanation: data.explanation || "Question skipped.",
       });
 
       setProgress(data);
@@ -202,7 +227,6 @@ function App() {
           <div className="difficulty">
             Difficulty: {"⭐".repeat(task.difficulty || 5)}
           </div>
-          <p>{hurdle.chunk}</p>
 
           {task.questions &&
             task.questions.map((q, idx) => (
@@ -229,37 +253,7 @@ function App() {
       );
     }
 
-    // Render interactive games based on task type
-    if (task.type === "matching") {
-      return <MatchingGame task={task} onComplete={handleGameComplete} />;
-    }
-
-    // Traditional task types
-    if (task.type === "cloze") {
-      return (
-        <div className="hurdle-task cloze-task">
-          <h3>Fill in the Blanks 📝</h3>
-          <div className="difficulty">
-            Difficulty: {"⭐".repeat(hurdle.difficulty || 1)}
-          </div>
-          <p className="chunk-text">{hurdle.chunk}</p>
-          <div className="task-content">
-            <p>{task.question}</p>
-            {task.hint && <div className="hint">💡 Hint: {task.hint}</div>}
-            <input
-              type="text"
-              placeholder="Fill in the blank..."
-              value={answer}
-              onChange={(e) => setAnswer(e.target.value)}
-              disabled={loading}
-            />
-          </div>
-          <button onClick={handleSubmit} disabled={loading || !answer}>
-            Submit Answer
-          </button>
-        </div>
-      );
-    }
+    // Only handle multiple choice questions
 
     if (task.type === "choice") {
       return (
@@ -268,72 +262,47 @@ function App() {
           <div className="difficulty">
             Difficulty: {"⭐".repeat(hurdle.difficulty || 1)}
           </div>
-          <p className="chunk-text">{hurdle.chunk}</p>
           <div className="task-content">
-            <h4>{task.question}</h4>
-            {task.options?.map((option, idx) => (
-              <label key={idx} className="option">
-                <input
-                  type="radio"
-                  name="choice"
-                  value={idx}
-                  onChange={(e) => setAnswer(e.target.value)}
-                />
-                {option}
-              </label>
-            ))}
+            <h4 className="question-text">{task.question}</h4>
+            <div className="options-container">
+              {task.options?.map((option, idx) => (
+                <label key={idx} className="option-label">
+                  <input
+                    type="radio"
+                    name="choice"
+                    value={idx}
+                    onChange={(e) => setAnswer(e.target.value)}
+                    className="option-radio"
+                  />
+                  <span className="option-text">
+                    <strong>{String.fromCharCode(65 + idx)}.</strong> {option}
+                  </span>
+                </label>
+              ))}
+            </div>
+            <div className="answer-section">
+              <button
+                onClick={() => handleGameComplete(true, 100, parseInt(answer))}
+                disabled={loading || answer === ""}
+                className="submit-btn"
+              >
+                {loading ? "Submitting..." : "Submit Answer"}
+              </button>
+              <button
+                onClick={handleSkipQuestion}
+                disabled={loading}
+                className="skip-btn"
+              >
+                Skip Question
+              </button>
+            </div>
           </div>
-          <button
-            onClick={() => handleGameComplete(true, 100, answer)}
-            disabled={loading || !answer}
-          >
-            Submit Answer
-          </button>
         </div>
       );
     }
 
-    if (task.type === "highlight") {
-      return (
-        <div className="hurdle-task highlight-task">
-          <h3>Highlight Key Information 🔍</h3>
-          <div className="difficulty">
-            Difficulty: {"⭐".repeat(hurdle.difficulty || 1)}
-          </div>
-          <p className="chunk-text">{hurdle.chunk}</p>
-          <div className="task-content">
-            <p>{task.instruction}</p>
-            <textarea
-              placeholder="Type the key phrases you would highlight..."
-              value={answer}
-              onChange={(e) => setAnswer(e.target.value)}
-              disabled={loading}
-            />
-          </div>
-          <button onClick={handleSubmit} disabled={loading || !answer}>
-            Submit Highlights
-          </button>
-        </div>
-      );
-    }
-
-    // Fallback
-    return (
-      <div className="hurdle-task">
-        <h3>🎮 Learning Game</h3>
-        <p>{hurdle.chunk}</p>
-        <input
-          type="text"
-          placeholder="Your answer..."
-          value={answer}
-          onChange={(e) => setAnswer(e.target.value)}
-          disabled={loading}
-        />
-        <button onClick={handleSubmit} disabled={loading || !answer}>
-          Submit
-        </button>
-      </div>
-    );
+    // No fallback needed - we only support choice and cloze
+    return null;
   };
 
   // Show 3D home screen if no PDF is uploaded yet
@@ -372,7 +341,12 @@ function App() {
         </div>
       </div>
       {pdfId && numChunks > 0 && (
-        <Roadmap3D totalHurdles={numChunks} currentHurdle={progress.current} />
+        <ProgressBar
+          totalHurdles={numChunks}
+          currentHurdle={progress.current}
+          xp={progress.xp}
+          streak={progress.streak}
+        />
       )}
       {!pdfId && (
         <form onSubmit={handleUpload} className="upload-form">
@@ -394,47 +368,46 @@ function App() {
       {feedback && feedback.show && (
         <div className="feedback-modal">
           <div className="feedback-content">
-            <h3>{feedback.correct ? "🎉 Correct!" : "❌ Incorrect"}</h3>
-            <div className="score">Score: {feedback.score.toFixed(0)}%</div>
-            <div className="feedback-text">{feedback.feedback}</div>
-            <div className="explanation">{feedback.explanation}</div>
-            <div className="message">{feedback.message}</div>
+            <div className="score-display">
+              <div className="score-number">{feedback.score.toFixed(0)}</div>
+              <div className="score-label">Score</div>
+            </div>
+            {feedback.explanation && (
+              <div className="explanation-text">{feedback.explanation}</div>
+            )}
             <button onClick={continueToNext} className="continue-btn">
-              Continue to Next Hurdle
+              Continue to Next Question
             </button>
           </div>
         </div>
       )}
       {pdfId && !done && (
-        <div className="hurdle-section">
-          <div className="progress-bar">
-            <div
-              className="progress"
-              style={{ width: `${(progress.current / numChunks) * 100 || 0}%` }}
-            />
-          </div>
-          <div className="stats">
-            <span>🎯 XP: {progress.xp}</span>
-            <span>🔥 Streak: {progress.streak}</span>
-            <span>
-              📚 Hurdle: {progress.current + 1} / {numChunks}
-            </span>
-          </div>
+        <div className="main-content">
+          <div className="question-section">{renderTask()}</div>
 
-          {hurdle && hurdle.key_concepts && (
-            <div className="key-concepts">
-              <h4>🔑 Key Concepts:</h4>
-              <div className="concepts">
-                {hurdle.key_concepts.map((concept, idx) => (
-                  <span key={idx} className="concept-tag">
-                    {concept}
-                  </span>
-                ))}
-              </div>
+          <div className="document-preview">
+            <div className="document-header">
+              <h3>📄 {hurdle?.document_title || "Document"}</h3>
             </div>
-          )}
-
-          {renderTask()}
+            <div className="document-content">
+              {hurdle?.document_text && (
+                <div className="document-text">
+                  {hurdle.document_text.split("\n\n").map((paragraph, idx) => (
+                    <p
+                      key={idx}
+                      className={
+                        hurdle.chunk.includes(paragraph.substring(0, 50))
+                          ? "current-chunk"
+                          : ""
+                      }
+                    >
+                      {paragraph}
+                    </p>
+                  ))}
+                </div>
+              )}
+            </div>
+          </div>
         </div>
       )}
       {done && (

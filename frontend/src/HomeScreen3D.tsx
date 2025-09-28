@@ -1,4 +1,4 @@
-import React, { useRef, useEffect, useState } from "react";
+import { useRef, useState } from "react";
 import { Canvas, useFrame } from "@react-three/fiber";
 import {
   OrbitControls,
@@ -144,7 +144,6 @@ function UploadButton({ onClick }: { onClick: () => void }) {
       onPointerEnter={() => setHovered(true)}
       onPointerLeave={() => setHovered(false)}
       onClick={onClick}
-      style={{ cursor: "pointer" }}
     >
       <Box args={[3, 1, 0.3]}>
         <meshStandardMaterial
